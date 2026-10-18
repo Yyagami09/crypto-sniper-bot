@@ -103,22 +103,38 @@ def inserir_projeto_manual(nome, rede, site_url, twitter_url):
 
 # --- Motor Alpha de Social Listening ---
 def buscar_projetos_reais():
-    with st.spinner('A caçar links underground e anúncios (isto pode demorar 5-10 segs)...'):
+    with st.spinner('A caçar links underground e anúncios...'):
         try:
             existentes_db = supabase.table('crypto_games').select("site_url").execute()
             sites_existentes = [x['site_url'] for x in existentes_db.data if x.get('site_url')]
             
             url = "https://www.reddit.com/search.json"
-            # Funil ligeiramente mais largo para garantir captação de leads
             params = {
                 "q": '("web3 game" OR "crypto game" OR "solana game") AND (launch OR tge OR airdrop OR whitelist OR token)',
                 "sort": "new",
                 "limit": 50
             }
-            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) CryptoSniperBot/3.1'}
+            # Disfarce perfeito de um Google Chrome comum no Windows 10
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'application/json'
+            }
             
             resposta = requests.get(url, params=params, headers=headers)
-            dados = resposta.json()
+            
+            # Tratamento da barreira (Rate Limit / Bloqueio IP)
+            if resposta.status_code == 429:
+                st.error("⚠️ O Reddit bloqueou temporariamente o seu radar (Muitas requisições). Tente novamente daqui a 5 minutos.")
+                return
+            elif resposta.status_code != 200:
+                st.error(f"⚠️ A fonte de dados recusou a ligação (Erro {resposta.status_code}).")
+                return
+
+            try:
+                dados = resposta.json()
+            except ValueError:
+                st.error("⚠️ O Reddit não devolveu os dados corretamente. Provável bloqueio de segurança da nuvem.")
+                return
             
             novos_projetos_inseridos = 0
             
@@ -171,10 +187,10 @@ def buscar_projetos_reais():
             if novos_projetos_inseridos > 0:
                 st.toast(f'Varredura concluída! {novos_projetos_inseridos} projetos novos encontrados.', icon='📡')
             else:
-                st.toast('Nenhum link novo encontrado. Tudo o que está a ser falado já está no seu radar!', icon='⚠️')
+                st.toast('Nenhum link novo encontrado nesta varredura.', icon='⚠️')
                 
         except Exception as e:
-            st.error(f"Falha na API: {e}")
+            st.error(f"Erro inesperado no sistema de busca: {e}")
 
 # --- Interface do Usuário ---
 st.title("🎯 Crypto Sniper Dashboard")
@@ -185,7 +201,6 @@ with st.sidebar:
     
     if st.button("📡 Buscar Projetos Underground"):
         buscar_projetos_reais()
-        # Sem st.rerun() aqui para evitar o reinício que escondia as notificações
         
     st.divider()
     
@@ -198,7 +213,6 @@ with st.sidebar:
             submit_manual = st.form_submit_button("Salvar no Radar")
             if submit_manual and m_nome:
                 inserir_projeto_manual(m_nome, m_rede, m_site, m_twitter)
-                # Sem st.rerun() para mostrar o toast corretamente
 
     st.divider()
     st.subheader("Filtros")
@@ -207,7 +221,6 @@ with st.sidebar:
     st.divider()
     if st.button("🚨 Limpar Todo o Dashboard", type="primary"):
         limpar_dashboard_inteiro()
-        # Sem st.rerun() aqui também
 
 # Renderização dos Dados
 jogos = buscar_jogos()
@@ -251,7 +264,7 @@ else:
                 st.markdown(card_html, unsafe_allow_html=True)
                 if st.button("🗑️ Apagar", key=f"del_{jogo['id']}"):
                     apagar_jogo(jogo['id'])
-                    st.rerun() # Aqui o rerun é obrigatório para o card desaparecer imediatamente
+                    st.rerun()
         elif idx % 3 == 1:
             with col2: 
                 st.markdown(card_html, unsafe_allow_html=True)
