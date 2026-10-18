@@ -37,100 +37,118 @@ css = """
     font-size: 11px; font-weight: 700; color: #5E6673; 
     letter-spacing: 1.2px; margin: 18px 0 8px 4px; text-transform: uppercase; 
 }
-.sidebar-divider {
-    height: 1px; background-color: #161B22; margin: 18px 0;
-}
+.sidebar-divider { height: 1px; background-color: #161B22; margin: 18px 0; }
 
-/* Remove as bolinhas do st.radio na barra lateral */
-[data-testid="stSidebar"] [data-testid="stRadio"] > div[role="radiogroup"] {
-    gap: 6px;
-}
-[data-testid="stSidebar"] [data-testid="stRadio"] > div[role="radiogroup"] > label > div:first-child {
+/* 1. Esconder a bolinha nativa do Streamlit (Infalível) */
+[data-testid="stSidebar"] div[role="radiogroup"] label > div:has(input[type="radio"]) {
     display: none !important;
 }
 
-/* Estilo base dos itens do menu (Inativos) */
-[data-testid="stSidebar"] [data-testid="stRadio"] > div[role="radiogroup"] > label {
-    padding: 11px 14px 11px 44px !important;
+/* 2. Transformar o label num botão clicável inteiro */
+[data-testid="stSidebar"] div[role="radiogroup"] > label {
+    padding: 0 !important;
+    margin-bottom: 6px !important;
     border-radius: 10px !important;
-    border: 1px solid transparent !important;
     background-color: transparent !important;
+    border: 1px solid transparent !important;
     transition: all 0.2s ease !important;
-    cursor: pointer !important;
     width: 100% !important;
-    margin: 0 !important;
-    background-repeat: no-repeat !important;
-    background-position: 14px center !important;
-    background-size: 19px 19px !important;
+    cursor: pointer !important;
 }
-[data-testid="stSidebar"] [data-testid="stRadio"] > div[role="radiogroup"] > label p {
-    color: #848E9C !important;
-    font-size: 14px !important;
-    font-weight: 500 !important;
-    margin: 0 !important;
-}
-[data-testid="stSidebar"] [data-testid="stRadio"] > div[role="radiogroup"] > label:hover {
+
+/* 3. Efeito Hover (Cinza claro sutil) */
+[data-testid="stSidebar"] div[role="radiogroup"] > label:hover {
     background-color: rgba(255, 255, 255, 0.03) !important;
 }
 
-/* Estilo do item ATIVO (Fundo e Borda Verde-Água) */
-[data-testid="stSidebar"] [data-testid="stRadio"] > div[role="radiogroup"] > label:has(input:checked) {
-    background-color: #0B221E !important;
-    border: 1px solid #153E36 !important;
-    box-shadow: inset 0 0 12px rgba(0, 230, 168, 0.05) !important;
+/* 4. Estilo do item ATIVO (Fundo e Borda Verde-Água) */
+[data-testid="stSidebar"] div[role="radiogroup"] > label:has(input:checked) {
+    background-color: #071B17 !important;
+    border: 1px solid #0D3B31 !important;
 }
-[data-testid="stSidebar"] [data-testid="stRadio"] > div[role="radiogroup"] > label:has(input:checked) p {
+
+/* 5. Alinhamento interno perfeito do texto */
+[data-testid="stSidebar"] div[role="radiogroup"] > label > div:last-child {
+    width: 100% !important;
+    padding: 12px 14px !important;
+}
+[data-testid="stSidebar"] div[role="radiogroup"] > label p {
+    color: #848E9C !important;
+    font-size: 14.5px !important;
+    font-weight: 500 !important;
+    margin: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important; /* Espaço exato entre o ícone e o texto */
+}
+
+/* 6. Cor do texto ATIVO (Branco) */
+[data-testid="stSidebar"] div[role="radiogroup"] > label:has(input:checked) p {
     color: #FFFFFF !important;
     font-weight: 600 !important;
 }
 
-/* ÍCONES VETORIAIS (SVGs EMBUTIDOS) - GRUPO 1: MÓDULOS */
-/* 1. Game Sniper (Controle) */
-[data-testid="stSidebar"] [data-testid="stRadio"]:nth-of-type(1) label:nth-of-type(1) {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23848E9C'%3E%3Cpath d='M17.5 7H6.5C3.7 7 1.8 9.5 2.1 12.3L2.8 17.5C3 19.3 4.8 20.4 6.5 19.8C7.1 19.6 7.7 19.1 8.1 18.6L9.7 16.5C10.1 16.1 10.6 15.8 11.2 15.8H12.8C13.4 15.8 13.9 16.1 14.3 16.5L15.9 18.6C16.3 19.1 16.9 19.6 17.5 19.8C19.2 20.4 21 19.3 21.2 17.5L21.9 12.3C22.2 9.5 20.3 7 17.5 7ZM8.5 13H7V14.5C7 14.8 6.8 15 6.5 15C6.2 15 6 14.8 6 14.5V13H4.5C4.2 13 4 12.8 4 12.5C4 12.2 4.2 12 4.5 12H6V10.5C6 10.2 6.2 10 6.5 10C6.8 10 7 10.2 7 10.5V12H8.5C8.8 12 9 12.2 9 12.5C9 12.8 8.8 13 8.5 13ZM16 14C15.4 14 15 13.6 15 13C15 12.4 15.4 12 16 12C16.6 12 17 12.4 17 13C17 13.6 16.6 14 16 14ZM18.5 12C17.9 12 17.5 11.6 17.5 11C17.5 10.4 17.9 10 18.5 10C19.1 10 19.5 10.4 19.5 11C19.5 11.6 19.1 12 18.5 12Z'/%3E%3C/svg%3E") !important;
-}
-[data-testid="stSidebar"] [data-testid="stRadio"]:nth-of-type(1) label:nth-of-type(1):has(input:checked) {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2300E6A8'%3E%3Cpath d='M17.5 7H6.5C3.7 7 1.8 9.5 2.1 12.3L2.8 17.5C3 19.3 4.8 20.4 6.5 19.8C7.1 19.6 7.7 19.1 8.1 18.6L9.7 16.5C10.1 16.1 10.6 15.8 11.2 15.8H12.8C13.4 15.8 13.9 16.1 14.3 16.5L15.9 18.6C16.3 19.1 16.9 19.6 17.5 19.8C19.2 20.4 21 19.3 21.2 17.5L21.9 12.3C22.2 9.5 20.3 7 17.5 7ZM8.5 13H7V14.5C7 14.8 6.8 15 6.5 15C6.2 15 6 14.8 6 14.5V13H4.5C4.2 13 4 12.8 4 12.5C4 12.2 4.2 12 4.5 12H6V10.5C6 10.2 6.2 10 6.5 10C6.8 10 7 10.2 7 10.5V12H8.5C8.8 12 9 12.2 9 12.5C9 12.8 8.8 13 8.5 13ZM16 14C15.4 14 15 13.6 15 13C15 12.4 15.4 12 16 12C16.6 12 17 12.4 17 13C17 13.6 16.6 14 16 14ZM18.5 12C17.9 12 17.5 11.6 17.5 11C17.5 10.4 17.9 10 18.5 10C19.1 10 19.5 10.4 19.5 11C19.5 11.6 19.1 12 18.5 12Z'/%3E%3C/svg%3E") !important;
-}
-
-/* 2. Crypto Sniper (Barras) */
-[data-testid="stSidebar"] [data-testid="stRadio"]:nth-of-type(1) label:nth-of-type(2) {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23848E9C' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='13' width='4' height='7' rx='1'/%3E%3Crect x='10' y='9' width='4' height='11' rx='1'/%3E%3Crect x='16' y='5' width='4' height='15' rx='1'/%3E%3C/svg%3E") !important;
-}
-[data-testid="stSidebar"] [data-testid="stRadio"]:nth-of-type(1) label:nth-of-type(2):has(input:checked) {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300E6A8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='13' width='4' height='7' rx='1'/%3E%3Crect x='10' y='9' width='4' height='11' rx='1'/%3E%3Crect x='16' y='5' width='4' height='15' rx='1'/%3E%3C/svg%3E") !important;
+/* 7. Base para injeção dos ícones SVG */
+[data-testid="stSidebar"] div[role="radiogroup"] > label p::before {
+    content: "";
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    flex-shrink: 0;
 }
 
-/* ÍCONES VETORIAIS (SVGs EMBUTIDOS) - GRUPO 2: WORKSPACE */
-/* 1. Buscar projetos (Lupa) */
-[data-testid="stSidebar"] [data-testid="stRadio"]:nth-of-type(2) label:nth-of-type(1) {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23848E9C' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cline x1='20' y1='20' x2='16' y2='16'/%3E%3C/svg%3E") !important;
+/* =========================================================
+   INJEÇÃO DOS ÍCONES VETORIAIS (Game, Crypto, Busca, Kanban)
+   ========================================================= */
+
+/* GRUPO 1: MÓDULOS -> Game Sniper (Ícone Controle) */
+div[aria-label="Módulos"] > label:nth-of-type(1) p::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23848E9C'%3E%3Cpath d='M17.5 7H6.5C3.7 7 1.8 9.5 2.1 12.3L2.8 17.5C3 19.3 4.8 20.4 6.5 19.8C7.1 19.6 7.7 19.1 8.1 18.6L9.7 16.5C10.1 16.1 10.6 15.8 11.2 15.8H12.8C13.4 15.8 13.9 16.1 14.3 16.5L15.9 18.6C16.3 19.1 16.9 19.6 17.5 19.8C19.2 20.4 21 19.3 21.2 17.5L21.9 12.3C22.2 9.5 20.3 7 17.5 7ZM8.5 13H7V14.5C7 14.8 6.8 15 6.5 15C6.2 15 6 14.8 6 14.5V13H4.5C4.2 13 4 12.8 4 12.5C4 12.2 4.2 12 4.5 12H6V10.5C6 10.2 6.2 10 6.5 10C6.8 10 7 10.2 7 10.5V12H8.5C8.8 12 9 12.2 9 12.5C9 12.8 8.8 13 8.5 13ZM16 14C15.4 14 15 13.6 15 13C15 12.4 15.4 12 16 12C16.6 12 17 12.4 17 13C17 13.6 16.6 14 16 14ZM18.5 12C17.9 12 17.5 11.6 17.5 11C17.5 10.4 17.9 10 18.5 10C19.1 10 19.5 10.4 19.5 11C19.5 11.6 19.1 12 18.5 12Z'/%3E%3C/svg%3E");
 }
-[data-testid="stSidebar"] [data-testid="stRadio"]:nth-of-type(2) label:nth-of-type(1):has(input:checked) {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300E6A8' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cline x1='20' y1='20' x2='16' y2='16'/%3E%3C/svg%3E") !important;
+div[aria-label="Módulos"] > label:nth-of-type(1):has(input:checked) p::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2300E6A8'%3E%3Cpath d='M17.5 7H6.5C3.7 7 1.8 9.5 2.1 12.3L2.8 17.5C3 19.3 4.8 20.4 6.5 19.8C7.1 19.6 7.7 19.1 8.1 18.6L9.7 16.5C10.1 16.1 10.6 15.8 11.2 15.8H12.8C13.4 15.8 13.9 16.1 14.3 16.5L15.9 18.6C16.3 19.1 16.9 19.6 17.5 19.8C19.2 20.4 21 19.3 21.2 17.5L21.9 12.3C22.2 9.5 20.3 7 17.5 7ZM8.5 13H7V14.5C7 14.8 6.8 15 6.5 15C6.2 15 6 14.8 6 14.5V13H4.5C4.2 13 4 12.8 4 12.5C4 12.2 4.2 12 4.5 12H6V10.5C6 10.2 6.2 10 6.5 10C6.8 10 7 10.2 7 10.5V12H8.5C8.8 12 9 12.2 9 12.5C9 12.8 8.8 13 8.5 13ZM16 14C15.4 14 15 13.6 15 13C15 12.4 15.4 12 16 12C16.6 12 17 12.4 17 13C17 13.6 16.6 14 16 14ZM18.5 12C17.9 12 17.5 11.6 17.5 11C17.5 10.4 17.9 10 18.5 10C19.1 10 19.5 10.4 19.5 11C19.5 11.6 19.1 12 18.5 12Z'/%3E%3C/svg%3E");
 }
 
-/* 2. Kanban (Colunas) */
-[data-testid="stSidebar"] [data-testid="stRadio"]:nth-of-type(2) label:nth-of-type(2) {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23848E9C' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='4' width='6' height='16' rx='1.5'/%3E%3Crect x='14' y='4' width='6' height='10' rx='1.5'/%3E%3C/svg%3E") !important;
+/* GRUPO 1: MÓDULOS -> Crypto Sniper (Ícone Barras) */
+div[aria-label="Módulos"] > label:nth-of-type(2) p::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23848E9C' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='13' width='4' height='7' rx='1'/%3E%3Crect x='10' y='9' width='4' height='11' rx='1'/%3E%3Crect x='16' y='5' width='4' height='15' rx='1'/%3E%3C/svg%3E");
 }
-[data-testid="stSidebar"] [data-testid="stRadio"]:nth-of-type(2) label:nth-of-type(2):has(input:checked) {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300E6A8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='4' width='6' height='16' rx='1.5'/%3E%3Crect x='14' y='4' width='6' height='10' rx='1.5'/%3E%3C/svg%3E") !important;
+div[aria-label="Módulos"] > label:nth-of-type(2):has(input:checked) p::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300E6A8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='13' width='4' height='7' rx='1'/%3E%3Crect x='10' y='9' width='4' height='11' rx='1'/%3E%3Crect x='16' y='5' width='4' height='15' rx='1'/%3E%3C/svg%3E");
 }
 
-/* Tipografia e Topo */
+/* GRUPO 2: WORKSPACE -> Buscar projetos (Ícone Lupa) */
+div[aria-label="Workspace"] > label:nth-of-type(1) p::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23848E9C' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cline x1='20' y1='20' x2='16' y2='16'/%3E%3C/svg%3E");
+}
+div[aria-label="Workspace"] > label:nth-of-type(1):has(input:checked) p::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300E6A8' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cline x1='20' y1='20' x2='16' y2='16'/%3E%3C/svg%3E");
+}
+
+/* GRUPO 2: WORKSPACE -> Kanban (Ícone Colunas) */
+div[aria-label="Workspace"] > label:nth-of-type(2) p::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23848E9C' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='4' width='6' height='16' rx='1.5'/%3E%3Crect x='14' y='4' width='6' height='10' rx='1.5'/%3E%3C/svg%3E");
+}
+div[aria-label="Workspace"] > label:nth-of-type(2):has(input:checked) p::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300E6A8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='4' width='6' height='16' rx='1.5'/%3E%3Crect x='14' y='4' width='6' height='10' rx='1.5'/%3E%3C/svg%3E");
+}
+
+/* =========================================================
+   ESTILOS GERAIS DOS CARDS E BOTÕES
+   ========================================================= */
 .breadcrumb { font-size: 13px; color: #848E9C; margin-bottom: 15px; font-weight: 500; }
 .breadcrumb span { color: #00E6A8; font-weight: 600; }
 .main-title { font-size: 32px; font-weight: 800; color: #FFFFFF; margin: 0 0 4px 0; letter-spacing: -0.5px; }
 .sub-title { font-size: 15px; color: #848E9C; margin-bottom: 24px; }
 
-/* KPI Cards (Métricas do Topo) */
 .kpi-card { background-color: #12161C; border: 1px solid #1E242D; border-radius: 12px; padding: 18px 20px; display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
 .kpi-icon { width: 46px; height: 46px; border-radius: 10px; background-color: #192028; display: flex; align-items: center; justify-content: center; font-size: 20px; border: 1px solid #252E3A; }
 .kpi-label { font-size: 13px; color: #848E9C; margin: 0 0 2px 0; }
 .kpi-val { font-size: 26px; font-weight: 800; color: #FFFFFF; margin: 0; line-height: 1.1; }
 
-/* Card Principal (Tela de Busca) */
 .sniper-card { background-color: #12161C; border: 1px solid #1E242D; border-radius: 12px; padding: 18px; margin-bottom: 8px; transition: border-color 0.2s; }
 .sniper-card:hover { border-color: #2B3645; }
 .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
@@ -138,7 +156,6 @@ css = """
 .badge-tba { background-color: #1C222B; color: #848E9C; font-size: 11px; padding: 3px 8px; border-radius: 5px; font-weight: 600; display: inline-block; margin-bottom: 8px; }
 .net-pill { background-color: #191E26; border: 1px solid #262E3B; color: #EAECEF; font-size: 12px; padding: 4px 10px; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; font-weight: 500; }
 
-/* Score e Barra de Progresso */
 .score-wrapper { display: flex; align-items: baseline; gap: 4px; }
 .score-box { font-weight: 800; font-size: 16px; padding: 5px 10px; border-radius: 7px; color: #000; }
 .score-green { background-color: #00E6A8; box-shadow: 0 0 12px rgba(0, 230, 168, 0.25); }
@@ -156,7 +173,6 @@ css = """
 .links-line a { color: #848E9C; text-decoration: none; font-weight: 500; transition: color 0.2s; }
 .links-line a:hover { color: #00E6A8; }
 
-/* Kanban Container e Cards */
 .kanban-header { background-color: #12161C; border: 1px solid #1E242D; border-radius: 10px; padding: 12px 16px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
 .kanban-header-title { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; margin: 0; }
 .count-pill { background-color: #1E242D; color: #848E9C; font-size: 12px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
@@ -166,25 +182,11 @@ css = """
 .k-note-line { font-size: 12px; color: #6C7582; margin-top: 6px; display: flex; justify-content: space-between; align-items: center; font-style: italic; }
 .k-action-link { color: #00E6A8 !important; text-decoration: none; font-weight: 600; font-size: 12px; }
 
-/* Botões Customizados do Streamlit */
-div.stButton > button {
-    background-color: #161B22; color: #EAECEF; border: 1px solid #262E3B;
-    border-radius: 8px; font-weight: 600; font-size: 13px; padding: 0.45rem 1rem; transition: all 0.2s;
-}
+div.stButton > button { background-color: #161B22; color: #EAECEF; border: 1px solid #262E3B; border-radius: 8px; font-weight: 600; font-size: 13px; padding: 0.45rem 1rem; transition: all 0.2s; }
 div.stButton > button:hover { border-color: #00E6A8; color: #00E6A8; background-color: #121D1B; }
-
-/* Botão Primário (Verde Teal Destaque) */
-div.stButton > button[kind="primary"] {
-    background-color: #00E6A8 !important; color: #06110E !important; border: none !important; font-weight: 700 !important;
-}
-div.stButton > button[kind="primary"]:hover {
-    background-color: #00C892 !important; box-shadow: 0 0 15px rgba(0, 230, 168, 0.35);
-}
-
-/* Estilo do Popover (...) */
-[data-testid="stPopover"] > button {
-    background: transparent !important; border: 1px solid #1E242D !important; color: #848E9C !important; padding: 2px 10px !important; min-height: 32px !important;
-}
+div.stButton > button[kind="primary"] { background-color: #00E6A8 !important; color: #06110E !important; border: none !important; font-weight: 700 !important; }
+div.stButton > button[kind="primary"]:hover { background-color: #00C892 !important; box-shadow: 0 0 15px rgba(0, 230, 168, 0.35); }
+[data-testid="stPopover"] > button { background: transparent !important; border: 1px solid #1E242D !important; color: #848E9C !important; padding: 2px 10px !important; min-height: 32px !important; }
 [data-testid="stPopover"] > button:hover { border-color: #00E6A8 !important; color: #FFF !important; }
 </style>
 """
@@ -218,7 +220,7 @@ def apagar_jogo(jogo_id):
 def atualizar_status_kanban(jogo_id, novo_status):
     res = supabase.table('crypto_games').update({'kanban_status': novo_status}).eq('id', jogo_id).execute()
     if not res.data:
-        st.error("⚠️ O Supabase bloqueou a atualização! Execute o comando SQL de permissão 'FOR UPDATE' no painel do Supabase.")
+        st.error("⚠️ O Supabase bloqueou a atualização! Verifique as permissões UPDATE no seu painel.")
     else:
         st.toast(f'Projeto movido para: {novo_status}', icon='✅')
 
@@ -349,7 +351,7 @@ def buscar_projetos_reais():
         except Exception as e:
             st.error(f"Erro na busca: {e}")
 
-# --- Barra Lateral (Idêntica à Imagem de Referência) ---
+# --- Barra Lateral (Idêntica à Imagem de Referência SaaS) ---
 with st.sidebar:
     try:
         st.image("Crypto Sniper Logo.png", use_container_width=True)
@@ -371,7 +373,18 @@ with st.sidebar:
         st.rerun()
         
     st.markdown("<br><br><br><br>", unsafe_allow_html=True)
-    st.markdown("<div style='background:#0B221E; border:1px solid #153E36; padding:10px 14px; border-radius:10px; font-size:12px; color:#00E6A8; display:flex; align-items:center; justify-content:space-between;'><span>🟢 &nbsp;<b>Sistema online</b></span><span style='color:#848E9C;'>›</span></div>", unsafe_allow_html=True)
+    
+    # Botão inferior idêntico à referência (Sistema online)
+    btn_status = """
+    <div style="background-color: transparent; padding: 12px 14px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; cursor: default;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="width: 10px; height: 10px; border-radius: 50%; background-color: #00E6A8; box-shadow: 0 0 10px rgba(0, 230, 168, 0.6);"></div>
+            <span style="color: #EAECEF; font-size: 14px; font-weight: 500;">Sistema online</span>
+        </div>
+        <span style="color: #5E6673; font-weight: bold;">›</span>
+    </div>
+    """
+    st.markdown(btn_status, unsafe_allow_html=True)
 
 # --- Carregamento Geral de Dados ---
 todos_jogos = buscar_todos_jogos()
@@ -398,7 +411,6 @@ elif st.session_state.pagina == "Buscar projetos":
             buscar_projetos_reais()
             st.rerun()
 
-    # Métricas (KPIs)
     total_enc = len(todos_jogos)
     score_alto = len([j for j in todos_jogos if (j.get('alpha_score') or 0) >= 80])
     na_lista = len([j for j in todos_jogos if j.get('kanban_status') in ['Aguardando Lançamento', 'Lançado']])
@@ -408,14 +420,12 @@ elif st.session_state.pagina == "Buscar projetos":
     with k2: st.markdown(f"<div class='kpi-card'><div class='kpi-icon'>⭐</div><div><p class='kpi-label'>Score acima de 80</p><p class='kpi-val'>{score_alto}</p></div></div>", unsafe_allow_html=True)
     with k3: st.markdown(f"<div class='kpi-card'><div class='kpi-icon'>🔖</div><div><p class='kpi-label'>Na sua lista</p><p class='kpi-val'>{na_lista}</p></div></div>", unsafe_allow_html=True)
 
-    # Barra de Filtros e Pesquisa
     f1, f2, f3, f4 = st.columns([3, 1.5, 1.5, 1.5])
     with f1: termo_busca = st.text_input("Buscar", placeholder="🔍  Buscar por nome...", label_visibility="collapsed")
     with f2: filtro_rede = st.selectbox("Rede", ["Todas as redes", "Solana", "Ethereum", "Ronin", "Polygon", "Immutable X", "Outra"], label_visibility="collapsed")
     with f3: filtro_status = st.selectbox("Status", ["Todos os status", "Não adicionados", "Na minha lista"], label_visibility="collapsed")
     with f4: ordem = st.selectbox("Ordem", ["↓↑ Maior score", "↓↑ Mais visualizações"], label_visibility="collapsed")
 
-    # Aplicando Filtros
     jogos_filtrados = todos_jogos
     if termo_busca:
         jogos_filtrados = [j for j in jogos_filtrados if termo_busca.lower() in j['nome'].lower()]
@@ -430,7 +440,6 @@ elif st.session_state.pagina == "Buscar projetos":
 
     st.markdown(f"<p style='font-size:13px; color:#848E9C; margin: 10px 0 15px 0;'>{len(jogos_filtrados)} projetos encontrados</p>", unsafe_allow_html=True)
 
-    # Grid de Cards (3 Colunas)
     cols = st.columns(3)
     for idx, jogo in enumerate(jogos_filtrados):
         with cols[idx % 3]:
@@ -570,16 +579,8 @@ elif st.session_state.pagina == "Kanban":
     col_esq, col_dir = st.columns(2)
     with col_esq:
         st.markdown(f"<div class='kanban-header'><p class='kanban-header-title' style='color:#FCD535;'>🟡 Aguardando lançamento <span class='count-pill'>{len(jogos_ag)}</span></p></div>", unsafe_allow_html=True)
-        for j in jogos_ag:
-            desenhar_card_kanban(j, lancado=False)
-        if st.button("＋  Adicionar nesta etapa", key="add_col_ag", use_container_width=True):
-            st.session_state.mostrar_form_manual = True
-            st.rerun()
+        for j in jogos_ag: desenhar_card_kanban(j, lancado=False)
 
     with col_dir:
         st.markdown(f"<div class='kanban-header'><p class='kanban-header-title' style='color:#00E6A8;'>🟢 Projetos lançados <span class='count-pill'>{len(jogos_lanc)}</span></p></div>", unsafe_allow_html=True)
-        for j in jogos_lanc:
-            desenhar_card_kanban(j, lancado=True)
-        if st.button("＋  Adicionar nesta etapa", key="add_col_lanc", use_container_width=True):
-            st.session_state.mostrar_form_manual = True
-            st.rerun()
+        for j in jogos_lanc: desenhar_card_kanban(j, lancado=True)
