@@ -4,6 +4,8 @@ import requests
 import re
 from datetime import datetime, timedelta, timezone
 import streamlit.components.v1 as components
+from pathlib import Path
+from urllib.parse import quote
 
 # --- Configuração da Página ---
 st.set_page_config(page_title="Crypto Sniper", layout="wide", initial_sidebar_state="expanded")
@@ -27,7 +29,7 @@ if 'mostrar_form_manual' not in st.session_state:
 if 'auto_sniper' not in st.session_state:
     st.session_state.auto_sniper = False
 
-# --- Estilização CSS (Quebrada em múltiplas linhas para evitar truncamento) ---
+# --- Estilização CSS Base ---
 css = """
 <style>
 .stApp { background-color: #0B0E11; color: #EAECEF; }
@@ -91,7 +93,6 @@ div.stButton > button[kind="primary"]:hover { background-color: #00C892 !importa
 .k-info-line { font-size: 12px; color: #848E9C; margin-top: 10px; display: flex; justify-content: space-between; align-items: center; }
 .k-note-line { font-size: 12px; color: #6C7582; margin-top: 6px; display: flex; justify-content: space-between; align-items: center; font-style: italic; }
 .k-action-link { color: #00E6A8 !important; text-decoration: none; font-weight: 600; font-size: 12px; }
-
 .k-countdown { background-color: #071B17; border: 1px solid #00DCB0; color: #00E6A8; font-family: monospace; font-size: 13px; font-weight: bold; text-align: center; padding: 6px; border-radius: 6px; margin-top: 10px; box-shadow: inset 0 0 8px rgba(0,220,176,0.1); letter-spacing: 1px; transition: all 0.3s;}
 </style>
 """
@@ -271,9 +272,6 @@ def buscar_projetos_reais(custom_query=None):
             st.error(f"Erro na busca: {e}")
 
 # --- Navegação Lateral (Sólida e Nativa) ---
-from pathlib import Path
-from urllib.parse import quote
-
 def navegar_sidebar(campo, destino):
     st.session_state[campo] = destino
 
@@ -317,6 +315,14 @@ sidebar_css = '''
 .sniper-online-chevron { color: #93A6BA; font-size: 22px; }
 </style>
 '''
+
+# AQUI ESTÁ A LISTA QUE FUGIU NO ÚLTIMO COMMIT
+nav_items = [
+    ("nav_game", "Game Sniper", "game", "modulo_ativo"),
+    ("nav_crypto", "Crypto Sniper", "crypto", "modulo_ativo"),
+    ("nav_search", "Buscar projetos", "search", "pagina"),
+    ("nav_kanban", "Kanban", "kanban", "pagina"),
+]
 
 icon_css = []
 for key, label, icon, state_key in nav_items:
@@ -459,7 +465,6 @@ elif st.session_state.pagina == "Buscar projetos":
             icone_rede_html = obter_icone_rede(jogo.get('rede', 'Outra'))
             v_url = jogo.get('video_url', '#')
             
-            # Construção Limpa do Cartão de Busca HTML
             card_html = f"""
             <div class="sniper-card">
                 <div class="card-top">
@@ -590,7 +595,6 @@ elif st.session_state.pagina == "Kanban":
         if not lancado and iso_date:
             countdown_html = f"<div class='k-countdown' data-target='{iso_date}'>⏳ Calculando...</div>"
 
-        # Construção Limpa do Cartão do Kanban HTML
         k_html = f"""
         <div class="k-card">
             <div class="card-top">
@@ -651,7 +655,6 @@ elif st.session_state.pagina == "Kanban":
         st.markdown(f"<div class='kanban-header'><p class='kanban-header-title' style='color:#00E6A8;'>🟢 Projetos lançados <span class='count-pill'>{len(jogos_lanc)}</span></p></div>", unsafe_allow_html=True)
         for j in jogos_lanc: desenhar_card_kanban(j, lancado=True)
 
-    # --- Javascript para os Timers do Kanban (Formatado em string segura) ---
     js_kanban_code = '''
     <script>
         function updateTimers() {
