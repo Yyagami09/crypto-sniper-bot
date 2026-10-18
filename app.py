@@ -5,7 +5,6 @@ import re
 from datetime import datetime, timedelta, timezone
 
 # --- Configuração da Página ---
-# Agora sem o título solto, usamos apenas layout wide
 st.set_page_config(page_title="Sniper Dashboard", layout="wide", initial_sidebar_state="expanded")
 
 # --- Conexão Segura com Supabase ---
@@ -106,7 +105,7 @@ div.stButton > button[kind="primary"]:hover {
     transition: color 0.2s;
 }
 .links-row a:hover { color: #FFF; }
-.yt-link { color: #FF6B6B !important; } /* Vermelho Coral suave */
+.yt-link { color: #FF6B6B !important; }
 </style>
 """
 st.markdown(css, unsafe_allow_html=True)
@@ -174,7 +173,7 @@ def extrair_nome_provavel(titulo, site_url):
          return " ".join(palavras_chave[0:3]).capitalize()
     return " ".join(palavras[0:3]).capitalize() if palavras else "Unknown"
 
-# --- Motor Alpha de Varredura YouTube (Aumento para 5 Dias) ---
+# --- Motor Alpha de Varredura YouTube ---
 def buscar_projetos_reais():
     if "YOUTUBE_API_KEY" not in st.secrets:
         st.error("⚠️ Chave do YouTube não encontrada nos Secrets do Streamlit.")
@@ -187,7 +186,6 @@ def buscar_projetos_reais():
             sites_existentes = [x['site_url'] for x in existentes_db.data if x.get('site_url') and x.get('site_url') != "#"]
             videos_existentes = [x['video_url'] for x in existentes_db.data if x.get('video_url') and x.get('video_url') != "#"]
             
-            # Período estendido para 5 dias
             data_limite = (datetime.now(timezone.utc) - timedelta(days=5)).isoformat("T", "seconds").replace("+00:00", "Z")
             
             search_url = "https://www.googleapis.com/youtube/v3/search"
@@ -308,10 +306,14 @@ def buscar_projetos_reais():
 
 # --- Barra Lateral (Menu e Controles) ---
 with st.sidebar:
-    # Título do Dashboard Movido para aqui
-    st.markdown("<h2 style='text-align: center; margin-bottom: 30px; color: #FFF;'>🎯 Crypto Sniper<br>Dashboard</h2>", unsafe_allow_html=True)
+    # AQUI ESTÁ A ATUALIZAÇÃO DO NOME DO ARQUIVO DA IMAGEM
+    try:
+        st.image("Crypto Sniper Logo.png", use_container_width=True)
+    except FileNotFoundError:
+        st.markdown("<h2 style='text-align: center; margin-bottom: 30px; color: #FFF;'>🎯 Crypto Sniper</h2>", unsafe_allow_html=True)
     
-    # Botão de Busca Modernizado
+    st.markdown("<br>", unsafe_allow_html=True)
+    
     if st.button("🚀 Buscar Crypto Games", use_container_width=True):
         buscar_projetos_reais()
         
@@ -322,7 +324,6 @@ with st.sidebar:
     
     st.divider()
     
-    # Nome do Expander Limpo
     with st.expander("Adicionar Projeto"):
         with st.form("form_manual"):
             m_nome = st.text_input("Nome do Jogo")
@@ -340,7 +341,6 @@ with st.sidebar:
 # --- Renderização Principal dos Dados ---
 jogos = buscar_jogos()
 
-# Espaçamento para o conteúdo não colar no topo
 st.markdown("<br>", unsafe_allow_html=True)
 
 if not jogos:
