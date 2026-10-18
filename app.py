@@ -1,7 +1,5 @@
 import streamlit as st
 from supabase import create_client, Client
-import pandas as pd
-import time
 import requests
 import re
 
@@ -17,20 +15,15 @@ def init_connection():
 
 supabase: Client = init_connection()
 
-# --- Estilização CSS dos Cards (Dark Mode & Glow) ---
+# --- Estilização CSS dos Cards ---
 css = """
 <style>
 .sniper-card {
     background-color: #1E1E24;
     border-radius: 10px;
     padding: 15px;
-    margin-bottom: 15px;
+    margin-bottom: 5px;
     border: 1px solid #333;
-    transition: transform 0.2s;
-}
-.sniper-card:hover {
-    transform: translateY(-3px);
-    border-color: #555;
 }
 .card-header {
     display: flex;
@@ -74,8 +67,14 @@ def buscar_jogos():
     response = supabase.table('crypto_games').select("*").order('alpha_score', desc=True).execute()
     return response.data
 
+def apagar_jogo(jogo_id):
+    supabase.table('crypto_games').delete().eq('id', jogo_id).execute()
+
+def limpar_dashboard_inteiro():
+    # O PostgREST precisa de uma condição para deletar múltiplos dados. "neq" num valor irreal apaga tudo.
+    supabase.table('crypto_games').delete().neq('nome', 'VALOR_IMPOSSIVEL_DE_EXISTIR').execute()
+
 def inserir_projeto_manual(nome, rede, site_url, twitter_url):
-    # Calcula um score base focado em pre-TGE
     score = 50
     if site_url and len(site_url) > 5: score += 20
     if twitter_url and len(twitter_url) > 5: score += 15
@@ -94,18 +93,21 @@ def inserir_projeto_manual(nome, rede, site_url, twitter_url):
     supabase.table('crypto_games').insert(proj).execute()
     st.toast(f'✅ {nome} adicionado ao radar!')
 
-# --- Motor Alpha de Social Listening (Foco em Underground/Pre-TGE) ---
+# --- Motor Alpha de Social Listening Ilimitado ---
 def buscar_projetos_reais():
-    with st.spinner('A caçar links underground e anúncios de lançamento...'):
+    with st.spinner('A caçar todos os links underground e anúncios...'):
         try:
+            # Puxa os sites que já estão no dashboard para não os duplicar
+            existentes_db = supabase.table('crypto_games').select("site_url").execute()
+            sites_existentes = [x['site_url'] for x in existentes_db.data]
+            
             url = "https://www.reddit.com/search.json"
-            # Filtro focado em achar a "data X" e sites web3
             params = {
                 "q": '("web3 game" OR "crypto game" OR "solana game") AND ("launch date" OR "tge" OR "whitelist" OR "airdrop")',
                 "sort": "new",
-                "limit": 30
+                "limit": 50
             }
-            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) CryptoSniperBot/2.0'}
+            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) CryptoSniperBot/3.0'}
             
             resposta = requests.get(url, params=params, headers=headers)
             dados = resposta.json()
@@ -118,9 +120,7 @@ def buscar_projetos_reais():
                 texto = post_data.get('selftext', '')
                 conteudo_total = (titulo + " " + texto).lower()
                 
-                # Procura por links de sites de jogos (foco em .fun, .gg, .io, linktr.ee)
                 urls_encontradas = re.findall(r'https?://[^\s)\]"]+', texto)
-                
                 site_url = "#"
                 twitter_url = "#"
                 
@@ -130,8 +130,8 @@ def buscar_projetos_reais():
                     elif any(ext in link for ext in [".fun", ".gg", ".io", ".net", ".com", "linktr.ee"]) and "reddit" not in link:
                         site_url = link
                 
-                # Se não houver site, descarta. Queremos os links "solanademons.fun" da vida.
-                if site_url == "#":
+                # Se não tem site, ou se já está no dashboard, descarta.
+                if site_url == "#" or site_url in sites_existentes:
                     continue
                     
                 nome_projeto = " ".join(titulo.split()[0:4]).replace("[", "").replace("]", "")
@@ -142,10 +142,9 @@ def buscar_projetos_reais():
                 elif "immutable" in conteudo_total or "imx" in conteudo_total: rede = "Immutable X"
                 elif "polygon" in conteudo_total: rede = "Polygon"
                 
-                # --- Motor Alpha Pre-TGE ---
-                score = 60 # Nota alta inicial por ter site e estar em fase de anúncio
+                score = 60
                 if "whitelist" in conteudo_total: score += 15
-                if "q4" in conteudo_total or "q1" in conteudo_total: score += 10 # Indício de roadmap/data marcada
+                if "q4" in conteudo_total or "q1" in conteudo_total: score += 10
                 if twitter_url != "#": score += 10
                 
                 proj = {
@@ -162,16 +161,13 @@ def buscar_projetos_reais():
                 supabase.table('crypto_games').insert(proj).execute()
                 novos_projetos_inseridos += 1
                 
-                if novos_projetos_inseridos >= 5:
-                    break
-                    
             if novos_projetos_inseridos > 0:
-                st.success(f'📡 Varredura concluída! Encontramos {novos_projetos_inseridos} projetos novos com sites mapeados.')
+                st.success(f'📡 Varredura sem limites concluída! {novos_projetos_inseridos} projetos novos encontrados.')
             else:
-                st.warning('Nenhum link novo underground encontrado nesta varredura. Tente novamente mais tarde.')
+                st.warning('Nenhum link novo encontrado. Tudo o que está a ser falado já está no seu radar!')
                 
         except Exception as e:
-            st.error(f"Falha na varredura de escuta social: {e}")
+            st.error(f"Falha na varredura: {e}")
 
 # --- Interface do Usuário ---
 st.title("🎯 Crypto Sniper Dashboard")
@@ -186,7 +182,6 @@ with st.sidebar:
         
     st.divider()
     
-    # Formulário para Inserção Manual Rápida (Ex: solanademons.fun)
     with st.expander("➕ Adicionar Projeto Manualmente"):
         with st.form("form_manual"):
             m_nome = st.text_input("Nome do Jogo (Ex: Solana Demons)")
@@ -199,22 +194,28 @@ with st.sidebar:
                 st.rerun()
 
     st.divider()
-    st.subheader("Filtros do Dashboard")
+    
+    # Filtro apenas por rede agora
+    st.subheader("Filtros")
     filtro_rede = st.selectbox("Filtrar por Rede", ["Todas", "Solana", "Ronin", "Immutable X", "Polygon", "Avalanche", "Outra"])
-    nota_minima = st.slider("Alpha Score Mínimo", 0, 100, 50)
+
+    st.divider()
+    
+    # O botão de destruição em massa
+    if st.button("🚨 Limpar Todo o Dashboard", type="primary"):
+        limpar_dashboard_inteiro()
+        st.rerun()
 
 # Renderização dos Dados
 jogos = buscar_jogos()
 
 if not jogos:
-    st.info("O radar está vazio. Clique em 'Buscar Projetos Underground' ou adicione um manualmente.")
+    st.info("O radar está limpo. Busque novos projetos ou insira links manualmente.")
 else:
     col1, col2, col3 = st.columns(3)
     
     for idx, jogo in enumerate(jogos):
         if filtro_rede != "Todas" and jogo['rede'] != filtro_rede:
-            continue
-        if jogo['alpha_score'] < nota_minima:
             continue
             
         score = jogo['alpha_score']
@@ -242,9 +243,22 @@ else:
         </div>
         """
         
+        # O fluxo que coloca o card de HTML e logo abaixo o botão de apagar nativo do Streamlit
         if idx % 3 == 0:
-            with col1: st.markdown(card_html, unsafe_allow_html=True)
+            with col1: 
+                st.markdown(card_html, unsafe_allow_html=True)
+                if st.button("🗑️ Apagar", key=f"del_{jogo['id']}"):
+                    apagar_jogo(jogo['id'])
+                    st.rerun()
         elif idx % 3 == 1:
-            with col2: st.markdown(card_html, unsafe_allow_html=True)
+            with col2: 
+                st.markdown(card_html, unsafe_allow_html=True)
+                if st.button("🗑️ Apagar", key=f"del_{jogo['id']}"):
+                    apagar_jogo(jogo['id'])
+                    st.rerun()
         else:
-            with col3: st.markdown(card_html, unsafe_allow_html=True)
+            with col3: 
+                st.markdown(card_html, unsafe_allow_html=True)
+                if st.button("🗑️ Apagar", key=f"del_{jogo['id']}"):
+                    apagar_jogo(jogo['id'])
+                    st.rerun()
