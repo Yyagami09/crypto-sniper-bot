@@ -29,7 +29,7 @@ if 'mostrar_form_manual' not in st.session_state:
 if 'auto_sniper' not in st.session_state:
     st.session_state.auto_sniper = False
 
-# --- Estilização CSS Base ---
+# --- Estilização CSS ---
 css = """
 <style>
 .stApp { background-color: #0B0E11; color: #EAECEF; }
@@ -271,7 +271,7 @@ def buscar_projetos_reais(custom_query=None):
         except Exception as e:
             st.error(f"Erro na busca: {e}")
 
-# --- Navegação Lateral (Sólida e Nativa) ---
+# --- Navegação Lateral ---
 def navegar_sidebar(campo, destino):
     st.session_state[campo] = destino
 
@@ -316,14 +316,12 @@ sidebar_css = '''
 </style>
 '''
 
-# AQUI ESTÁ A LISTA QUE FUGIU NO ÚLTIMO COMMIT
 nav_items = [
     ("nav_game", "Game Sniper", "game", "modulo_ativo"),
     ("nav_crypto", "Crypto Sniper", "crypto", "modulo_ativo"),
     ("nav_search", "Buscar projetos", "search", "pagina"),
     ("nav_kanban", "Kanban", "kanban", "pagina"),
 ]
-
 icon_css = []
 for key, label, icon, state_key in nav_items:
     selector = f'[data-testid="stSidebar"] .st-key-{key} button'
@@ -392,7 +390,6 @@ elif st.session_state.pagina == "Buscar projetos":
                 buscar_projetos_reais(custom_query)
                 st.rerun()
 
-    # --- LÓGICA DO AUTO SNIPER (Timer 15 mins formatado em string segura) ---
     if st.session_state.auto_sniper:
         st.markdown(f"<div class='sentinel-hud'><div class='sentinel-pulse'></div><div class='sentinel-text'>AUTO SNIPER ATIVO - PRÓXIMA VARREDURA EM: <span id='timer'>15:00</span></div></div>", unsafe_allow_html=True)
         st.markdown("<div style='display: none;'>", unsafe_allow_html=True)
@@ -465,36 +462,7 @@ elif st.session_state.pagina == "Buscar projetos":
             icone_rede_html = obter_icone_rede(jogo.get('rede', 'Outra'))
             v_url = jogo.get('video_url', '#')
             
-            card_html = f"""
-            <div class="sniper-card">
-                <div class="card-top">
-                    <div>
-                        <p class="game-name">{jogo['nome']}</p>
-                        <span class="badge-tba">A anunciar</span><br>
-                        <div class="net-pill">{icone_rede_html}</div>
-                    </div>
-                    <div class="score-wrapper">
-                        <div class="score-box {cor_score}">{score}</div>
-                        <span class="score-max">/100</span>
-                    </div>
-                </div>
-                <div class="progress-bg">
-                    <div class="{cor_barra}" style="width: {score}%;"></div>
-                </div>
-                <div class="meta-line">
-                    <span>📅 Encontrado em {jogo.get('data_publicacao', 'Recente')}</span>
-                    <span>|</span>
-                    <span>👁️ {views_fmt} visualizações</span>
-                </div>
-                <div class="links-line">
-                    <a href="{jogo.get('twitter_url', '#')}" target="_blank">𝕏</a>
-                    <span style="color:#262E3B;">|</span>
-                    <a href="{jogo.get('site_url', '#')}" target="_blank">🌐 Site oficial</a>
-                    <span style="color:#262E3B;">|</span>
-                    <a href="{v_url}" target="_blank">↗ Fonte</a>
-                </div>
-            </div>
-            """
+            card_html = f"""<div class="sniper-card"><div class="card-top"><div><p class="game-name">{jogo['nome']}</p><span class="badge-tba">A anunciar</span><br><div class="net-pill">{icone_rede_html}</div></div><div class="score-wrapper"><div class="score-box {cor_score}">{score}</div><span class="score-max">/100</span></div></div><div class="progress-bg"><div class="{cor_barra}" style="width: {score}%;"></div></div><div class="meta-line"><span>📅 Encontrado em {jogo.get('data_publicacao', 'Recente')}</span><span>|</span><span>👁️ {views_fmt} visualizações</span></div><div class="links-line"><a href="{jogo.get('twitter_url', '#')}" target="_blank">𝕏</a><span style="color:#262E3B;">|</span><a href="{jogo.get('site_url', '#')}" target="_blank">🌐 Site oficial</a><span style="color:#262E3B;">|</span><a href="{v_url}" target="_blank">↗ Fonte</a></div></div>"""
             st.markdown(card_html, unsafe_allow_html=True)
             
             b_add, b_opt = st.columns([5, 1])
@@ -595,29 +563,7 @@ elif st.session_state.pagina == "Kanban":
         if not lancado and iso_date:
             countdown_html = f"<div class='k-countdown' data-target='{iso_date}'>⏳ Calculando...</div>"
 
-        k_html = f"""
-        <div class="k-card">
-            <div class="card-top">
-                <div style="display:flex; gap:10px; align-items:center;">
-                    <span style="color:#474D57; font-size:16px;">⠿</span>
-                    <div>
-                        <p class="game-name" style="font-size:16px; margin-bottom:4px;">{jogo['nome']}</p>
-                        <div class="net-pill">{icone_rede}</div>
-                    </div>
-                </div>
-                <div class="score-box {cor_score}" style="font-size:14px; padding:4px 8px;">{score}</div>
-            </div>
-            <div class="k-info-line">
-                <span>📅 {dt_txt}</span>
-                <span>{'' if lancado else '➕ Definir data'}</span>
-            </div>
-            {countdown_html}
-            <div class="k-note-line">
-                <span>📝 {nota_txt[:38]}</span>
-                {link_acao}
-            </div>
-        </div>
-        """
+        k_html = f"""<div class="k-card"><div class="card-top"><div style="display:flex; gap:10px; align-items:center;"><span style="color:#474D57; font-size:16px;">⠿</span><div><p class="game-name" style="font-size:16px; margin-bottom:4px;">{jogo['nome']}</p><div class="net-pill">{icone_rede}</div></div></div><div class="score-box {cor_score}" style="font-size:14px; padding:4px 8px;">{score}</div></div><div class="k-info-line"><span>📅 {dt_txt}</span><span>{'' if lancado else '➕ Definir data'}</span></div>{countdown_html}<div class="k-note-line"><span>📝 {nota_txt[:38]}</span>{link_acao}</div></div>"""
         st.markdown(k_html, unsafe_allow_html=True)
         
         c_act1, c_act2 = st.columns([4, 1])
