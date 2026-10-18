@@ -141,7 +141,7 @@ def inserir_projeto_manual(nome, rede, site_url, twitter_url):
         "ticker": "TBA",
         "rede": rede,
         "alpha_score": min(score, 100),
-        "estagio": "Underground / Radar",
+        "estagio": "Radar",
         "investidores": "Mapeamento Manual",
         "site_url": site_url,
         "twitter_url": twitter_url,
@@ -281,7 +281,7 @@ def buscar_projetos_reais():
                     "nome": nome_projeto[:25],
                     "ticker": "TBA",
                     "rede": rede,
-                    "estagio": "Underground / YouTube",
+                    "estagio": "YouTube",
                     "investidores": "Prospecção YouTube",
                     "twitter_url": twitter_url,
                     "site_url": site_url,
@@ -306,7 +306,6 @@ def buscar_projetos_reais():
 
 # --- Barra Lateral (Menu e Controles) ---
 with st.sidebar:
-    # AQUI ESTÁ A ATUALIZAÇÃO DO NOME DO ARQUIVO DA IMAGEM
     try:
         st.image("Crypto Sniper Logo.png", use_container_width=True)
     except FileNotFoundError:
