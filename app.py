@@ -17,6 +17,8 @@ def init_connection():
 supabase: Client = init_connection()
 
 # --- Controle de Estado de Navegação ---
+if 'modulo_ativo' not in st.session_state:
+    st.session_state.modulo_ativo = "Game Sniper"
 if 'pagina' not in st.session_state:
     st.session_state.pagina = "Buscar projetos"
 if 'mostrar_form_manual' not in st.session_state:
@@ -110,6 +112,14 @@ def buscar_todos_jogos():
 
 def apagar_jogo(jogo_id):
     supabase.table('crypto_games').delete().eq('id', jogo_id).execute()
+
+def limpar_dashboard_inteiro():
+    # Apaga apenas os projetos que ainda estão no "Radar", protegendo o Kanban
+    jogos = buscar_todos_jogos()
+    for j in jogos:
+        if j.get('kanban_status') not in ['Aguardando Lançamento', 'Lançado']:
+            apagar_jogo(j['id'])
+    st.toast('🚨 Tela de busca limpa! Seus projetos salvos foram protegidos.', icon='🗑️')
 
 def atualizar_status_kanban(jogo_id, novo_status):
     res = supabase.table('crypto_games').update({'kanban_status': novo_status}).eq('id', jogo_id).execute()
@@ -246,19 +256,11 @@ def buscar_projetos_reais():
             st.error(f"Erro na busca: {e}")
 
 # --- Navegação lateral: botões reais com callbacks e ícones incorporados ---
-# Requer Streamlit >= 1.39 (classes CSS st-key-*).
 from pathlib import Path
 from urllib.parse import quote
 
-if "modulo_ativo" not in st.session_state:
-    st.session_state.modulo_ativo = "Game Sniper"
-
-
 def navegar_sidebar(campo, destino):
-    # O callback é executado antes de redesenhar o app; os destaques acompanham
-    # também o botão "Explorar projetos" que já altera session_state.pagina.
     st.session_state[campo] = destino
-
 
 NAV_ICONS = {
     "game": '<path d="M6 7h12c2 0 3 2 3.5 5l.5 5c.2 2-2 3-3.5 1.5L16 16H8l-2.5 2.5C4 20 1.8 19 2 17l.5-5C3 9 4 7 6 7Z"/><path d="M7 10v5M4.5 12.5h5"/><circle cx="16" cy="11" r=".6"/><circle cx="19" cy="14" r=".6"/>',
@@ -267,13 +269,11 @@ NAV_ICONS = {
     "kanban": '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M6 7v5M12 7v9M18 7v3"/>',
 }
 
-
 def svg_nav_uri(body):
     svg = ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" '
            'fill="none" stroke="white" stroke-width="1.7" '
            'stroke-linecap="round" stroke-linejoin="round">' + body + '</svg>')
     return 'data:image/svg+xml,' + quote(svg, safe='')
-
 
 sidebar_css = '''
 <style>
@@ -303,7 +303,6 @@ sidebar_css = '''
     flex: 1;
     gap: 0 !important;
 }
-/* Algumas versões do Streamlit inserem um wrapper intermediário. */
 [data-testid="stSidebarUserContent"] > div:has(> [data-testid="stVerticalBlock"]) {
     display: flex;
     flex-direction: column;
@@ -343,7 +342,6 @@ sidebar_css = '''
     background: #252D35;
     margin: 26px 0 24px;
 }
-/* As regras são limitadas às quatro chaves da navegação. */
 [data-testid="stSidebar"] :is(.st-key-nav_game, .st-key-nav_crypto,
     .st-key-nav_search, .st-key-nav_kanban) { margin-bottom: 6px; }
 [data-testid="stSidebar"] :is(.st-key-nav_game, .st-key-nav_crypto,
@@ -393,7 +391,6 @@ sidebar_css = '''
     outline: 2px solid #00DCB0 !important;
     outline-offset: 3px;
 }
-/* Flex no rodapé: não depende de <br> nem de sobreposição fixa. */
 [data-testid="stSidebar"] .st-key-sniper_footer {
     margin-top: auto !important;
     padding-top: 32px;
@@ -416,9 +413,6 @@ sidebar_css = '''
     box-shadow: 0 0 0 6px rgba(0,220,176,.09);
 }
 .sniper-online-chevron { color: #93A6BA; font-size: 22px; }
-@media (prefers-reduced-motion: reduce) {
-    [data-testid="stSidebar"] button { transition: none !important; }
-}
 </style>
 '''
 
@@ -447,7 +441,6 @@ with st.sidebar:
         if logo_path.is_file():
             st.image(str(logo_path), use_container_width=True)
         else:
-            # Marca vetorial de reserva: o PNG existente continua tendo prioridade.
             st.markdown('''<div class="sniper-brand-fallback">
                 <svg viewBox="0 0 40 40" fill="none" aria-hidden="true">
                 <path d="M32 10a15 15 0 1 0 0 20" stroke="#00DCB0" stroke-width="6"/>
@@ -471,8 +464,6 @@ with st.sidebar:
             </div>''', unsafe_allow_html=True)
 
 modulo = st.session_state.modulo_ativo
-
-# --- Carregamento Geral de Dados ---
 todos_jogos = buscar_todos_jogos()
 
 # ==========================================
@@ -487,12 +478,18 @@ if modulo == "Crypto Sniper":
 # TELA 1: GAME SNIPER -> BUSCAR PROJETOS
 # ==========================================
 elif st.session_state.pagina == "Buscar projetos":
-    col_t1, col_t2 = st.columns([4, 1])
+    # 1. Ajuste de Layout: Botões Limpar Busca e Buscar Projetos alinhados no topo
+    col_t1, col_t2, col_t3 = st.columns([3, 1, 1])
     with col_t1:
         st.markdown("<div class='breadcrumb'>🎮 Game Sniper / <span>Busca</span></div>", unsafe_allow_html=True)
         st.markdown("<h1 class='main-title'>Descubra seu próximo projeto</h1><p class='sub-title'>Encontre, avalie e acompanhe novos jogos Web3.</p>", unsafe_allow_html=True)
     with col_t2:
-        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("<div style='margin-top: 32px;'></div>", unsafe_allow_html=True)
+        if st.button("🗑️ Limpar Busca", use_container_width=True, help="Remove apenas os projetos não adicionados à lista"):
+            limpar_dashboard_inteiro()
+            st.rerun()
+    with col_t3:
+        st.markdown("<div style='margin-top: 32px;'></div>", unsafe_allow_html=True)
         if st.button("⌖  Buscar projetos", type="primary", use_container_width=True):
             buscar_projetos_reais()
             st.rerun()
@@ -553,12 +550,13 @@ elif st.session_state.pagina == "Buscar projetos":
                     if st.button("＋  Adicionar à lista", key=f"add_{jogo['id']}", use_container_width=True):
                         atualizar_status_kanban(jogo['id'], 'Aguardando Lançamento')
                         st.rerun()
+            
+            # 2. Substituição do "•••" por um X de exclusão direto
             with b_opt:
-                with st.popover("•••", use_container_width=True):
-                    st.markdown(f"**{jogo['nome']}**")
-                    if st.button("🗑️ Deletar projeto", key=f"del_{jogo['id']}", use_container_width=True):
-                        apagar_jogo(jogo['id'])
-                        st.rerun()
+                if st.button("✖", key=f"del_{jogo['id']}", use_container_width=True, help="Deletar projeto"):
+                    apagar_jogo(jogo['id'])
+                    st.rerun()
+                    
             st.markdown("<div style='margin-bottom: 12px;'></div>", unsafe_allow_html=True)
 
 # ==========================================
