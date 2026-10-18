@@ -22,20 +22,107 @@ if 'pagina' not in st.session_state:
 if 'mostrar_form_manual' not in st.session_state:
     st.session_state.mostrar_form_manual = False
 
-# --- Estilização CSS (Tema Dark & Teal SaaS) ---
+# --- Estilização CSS (Tema Dark & Teal SaaS + Menu Lateral Customizado) ---
 css = """
 <style>
 /* Fundo Geral e Sidebar */
 .stApp { background-color: #0B0E11; color: #EAECEF; }
-[data-testid="stSidebar"] { background-color: #080A0C; border-right: 1px solid #1A1E24; }
+[data-testid="stSidebar"] { background-color: #080A0C; border-right: 1px solid #14181F; }
 .block-container { padding-top: 1.8rem !important; max-width: 96% !important; }
+
+/* =========================================================
+   MENU LATERAL CUSTOMIZADO (ESTILO SAAS VERDE-ÁGUA)
+   ========================================================= */
+.sidebar-section { 
+    font-size: 11px; font-weight: 700; color: #5E6673; 
+    letter-spacing: 1.2px; margin: 18px 0 8px 4px; text-transform: uppercase; 
+}
+.sidebar-divider {
+    height: 1px; background-color: #161B22; margin: 18px 0;
+}
+
+/* Remove as bolinhas do st.radio na barra lateral */
+[data-testid="stSidebar"] [data-testid="stRadio"] > div[role="radiogroup"] {
+    gap: 6px;
+}
+[data-testid="stSidebar"] [data-testid="stRadio"] > div[role="radiogroup"] > label > div:first-child {
+    display: none !important;
+}
+
+/* Estilo base dos itens do menu (Inativos) */
+[data-testid="stSidebar"] [data-testid="stRadio"] > div[role="radiogroup"] > label {
+    padding: 11px 14px 11px 44px !important;
+    border-radius: 10px !important;
+    border: 1px solid transparent !important;
+    background-color: transparent !important;
+    transition: all 0.2s ease !important;
+    cursor: pointer !important;
+    width: 100% !important;
+    margin: 0 !important;
+    background-repeat: no-repeat !important;
+    background-position: 14px center !important;
+    background-size: 19px 19px !important;
+}
+[data-testid="stSidebar"] [data-testid="stRadio"] > div[role="radiogroup"] > label p {
+    color: #848E9C !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    margin: 0 !important;
+}
+[data-testid="stSidebar"] [data-testid="stRadio"] > div[role="radiogroup"] > label:hover {
+    background-color: rgba(255, 255, 255, 0.03) !important;
+}
+
+/* Estilo do item ATIVO (Fundo e Borda Verde-Água) */
+[data-testid="stSidebar"] [data-testid="stRadio"] > div[role="radiogroup"] > label:has(input:checked) {
+    background-color: #0B221E !important;
+    border: 1px solid #153E36 !important;
+    box-shadow: inset 0 0 12px rgba(0, 230, 168, 0.05) !important;
+}
+[data-testid="stSidebar"] [data-testid="stRadio"] > div[role="radiogroup"] > label:has(input:checked) p {
+    color: #FFFFFF !important;
+    font-weight: 600 !important;
+}
+
+/* ÍCONES VETORIAIS (SVGs EMBUTIDOS) - GRUPO 1: MÓDULOS */
+/* 1. Game Sniper (Controle) */
+[data-testid="stSidebar"] [data-testid="stRadio"]:nth-of-type(1) label:nth-of-type(1) {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23848E9C'%3E%3Cpath d='M17.5 7H6.5C3.7 7 1.8 9.5 2.1 12.3L2.8 17.5C3 19.3 4.8 20.4 6.5 19.8C7.1 19.6 7.7 19.1 8.1 18.6L9.7 16.5C10.1 16.1 10.6 15.8 11.2 15.8H12.8C13.4 15.8 13.9 16.1 14.3 16.5L15.9 18.6C16.3 19.1 16.9 19.6 17.5 19.8C19.2 20.4 21 19.3 21.2 17.5L21.9 12.3C22.2 9.5 20.3 7 17.5 7ZM8.5 13H7V14.5C7 14.8 6.8 15 6.5 15C6.2 15 6 14.8 6 14.5V13H4.5C4.2 13 4 12.8 4 12.5C4 12.2 4.2 12 4.5 12H6V10.5C6 10.2 6.2 10 6.5 10C6.8 10 7 10.2 7 10.5V12H8.5C8.8 12 9 12.2 9 12.5C9 12.8 8.8 13 8.5 13ZM16 14C15.4 14 15 13.6 15 13C15 12.4 15.4 12 16 12C16.6 12 17 12.4 17 13C17 13.6 16.6 14 16 14ZM18.5 12C17.9 12 17.5 11.6 17.5 11C17.5 10.4 17.9 10 18.5 10C19.1 10 19.5 10.4 19.5 11C19.5 11.6 19.1 12 18.5 12Z'/%3E%3C/svg%3E") !important;
+}
+[data-testid="stSidebar"] [data-testid="stRadio"]:nth-of-type(1) label:nth-of-type(1):has(input:checked) {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2300E6A8'%3E%3Cpath d='M17.5 7H6.5C3.7 7 1.8 9.5 2.1 12.3L2.8 17.5C3 19.3 4.8 20.4 6.5 19.8C7.1 19.6 7.7 19.1 8.1 18.6L9.7 16.5C10.1 16.1 10.6 15.8 11.2 15.8H12.8C13.4 15.8 13.9 16.1 14.3 16.5L15.9 18.6C16.3 19.1 16.9 19.6 17.5 19.8C19.2 20.4 21 19.3 21.2 17.5L21.9 12.3C22.2 9.5 20.3 7 17.5 7ZM8.5 13H7V14.5C7 14.8 6.8 15 6.5 15C6.2 15 6 14.8 6 14.5V13H4.5C4.2 13 4 12.8 4 12.5C4 12.2 4.2 12 4.5 12H6V10.5C6 10.2 6.2 10 6.5 10C6.8 10 7 10.2 7 10.5V12H8.5C8.8 12 9 12.2 9 12.5C9 12.8 8.8 13 8.5 13ZM16 14C15.4 14 15 13.6 15 13C15 12.4 15.4 12 16 12C16.6 12 17 12.4 17 13C17 13.6 16.6 14 16 14ZM18.5 12C17.9 12 17.5 11.6 17.5 11C17.5 10.4 17.9 10 18.5 10C19.1 10 19.5 10.4 19.5 11C19.5 11.6 19.1 12 18.5 12Z'/%3E%3C/svg%3E") !important;
+}
+
+/* 2. Crypto Sniper (Barras) */
+[data-testid="stSidebar"] [data-testid="stRadio"]:nth-of-type(1) label:nth-of-type(2) {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23848E9C' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='13' width='4' height='7' rx='1'/%3E%3Crect x='10' y='9' width='4' height='11' rx='1'/%3E%3Crect x='16' y='5' width='4' height='15' rx='1'/%3E%3C/svg%3E") !important;
+}
+[data-testid="stSidebar"] [data-testid="stRadio"]:nth-of-type(1) label:nth-of-type(2):has(input:checked) {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300E6A8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='13' width='4' height='7' rx='1'/%3E%3Crect x='10' y='9' width='4' height='11' rx='1'/%3E%3Crect x='16' y='5' width='4' height='15' rx='1'/%3E%3C/svg%3E") !important;
+}
+
+/* ÍCONES VETORIAIS (SVGs EMBUTIDOS) - GRUPO 2: WORKSPACE */
+/* 1. Buscar projetos (Lupa) */
+[data-testid="stSidebar"] [data-testid="stRadio"]:nth-of-type(2) label:nth-of-type(1) {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23848E9C' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cline x1='20' y1='20' x2='16' y2='16'/%3E%3C/svg%3E") !important;
+}
+[data-testid="stSidebar"] [data-testid="stRadio"]:nth-of-type(2) label:nth-of-type(1):has(input:checked) {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300E6A8' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cline x1='20' y1='20' x2='16' y2='16'/%3E%3C/svg%3E") !important;
+}
+
+/* 2. Kanban (Colunas) */
+[data-testid="stSidebar"] [data-testid="stRadio"]:nth-of-type(2) label:nth-of-type(2) {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23848E9C' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='4' width='6' height='16' rx='1.5'/%3E%3Crect x='14' y='4' width='6' height='10' rx='1.5'/%3E%3C/svg%3E") !important;
+}
+[data-testid="stSidebar"] [data-testid="stRadio"]:nth-of-type(2) label:nth-of-type(2):has(input:checked) {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300E6A8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='4' width='6' height='16' rx='1.5'/%3E%3Crect x='14' y='4' width='6' height='10' rx='1.5'/%3E%3C/svg%3E") !important;
+}
 
 /* Tipografia e Topo */
 .breadcrumb { font-size: 13px; color: #848E9C; margin-bottom: 15px; font-weight: 500; }
 .breadcrumb span { color: #00E6A8; font-weight: 600; }
 .main-title { font-size: 32px; font-weight: 800; color: #FFFFFF; margin: 0 0 4px 0; letter-spacing: -0.5px; }
 .sub-title { font-size: 15px; color: #848E9C; margin-bottom: 24px; }
-.sidebar-section { font-size: 11px; font-weight: 700; color: #5E6673; letter-spacing: 1px; margin: 15px 0 8px 0; text-transform: uppercase; }
 
 /* KPI Cards (Métricas do Topo) */
 .kpi-card { background-color: #12161C; border: 1px solid #1E242D; border-radius: 12px; padding: 18px 20px; display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
@@ -262,7 +349,7 @@ def buscar_projetos_reais():
         except Exception as e:
             st.error(f"Erro na busca: {e}")
 
-# --- Barra Lateral (Menu Idêntico ao Protótipo) ---
+# --- Barra Lateral (Idêntica à Imagem de Referência) ---
 with st.sidebar:
     try:
         st.image("Crypto Sniper Logo.png", use_container_width=True)
@@ -270,20 +357,21 @@ with st.sidebar:
         st.markdown("<h2 style='color:#00E6A8; margin-bottom:0;'>🎯 Crypto Sniper</h2>", unsafe_allow_html=True)
     
     st.markdown("<div class='sidebar-section'>MÓDULOS</div>", unsafe_allow_html=True)
-    modulo = st.radio("Módulos", ["🎮  Game Sniper", "📊  Crypto Sniper"], label_visibility="collapsed")
+    modulo = st.radio("Módulos", ["Game Sniper", "Crypto Sniper"], label_visibility="collapsed")
+    
+    st.markdown("<div class='sidebar-divider'></div>", unsafe_allow_html=True)
     
     st.markdown("<div class='sidebar-section'>WORKSPACE</div>", unsafe_allow_html=True)
-    opcoes_ws = ["🔍  Buscar projetos", "📋  Kanban"]
+    opcoes_ws = ["Buscar projetos", "Kanban"]
     idx_atual = 0 if st.session_state.pagina == "Buscar projetos" else 1
     escolha_ws = st.radio("Workspace", opcoes_ws, index=idx_atual, label_visibility="collapsed")
     
-    nova_pag = "Buscar projetos" if "Buscar" in escolha_ws else "Kanban"
-    if nova_pag != st.session_state.pagina:
-        st.session_state.pagina = nova_pag
+    if escolha_ws != st.session_state.pagina:
+        st.session_state.pagina = escolha_ws
         st.rerun()
         
     st.markdown("<br><br><br><br>", unsafe_allow_html=True)
-    st.markdown("<div style='background:#101816; border:1px solid #19382F; padding:10px 14px; border-radius:8px; font-size:12px; color:#00E6A8;'>🟢 <b>Sistema online</b></div>", unsafe_allow_html=True)
+    st.markdown("<div style='background:#0B221E; border:1px solid #153E36; padding:10px 14px; border-radius:10px; font-size:12px; color:#00E6A8; display:flex; align-items:center; justify-content:space-between;'><span>🟢 &nbsp;<b>Sistema online</b></span><span style='color:#848E9C;'>›</span></div>", unsafe_allow_html=True)
 
 # --- Carregamento Geral de Dados ---
 todos_jogos = buscar_todos_jogos()
@@ -291,7 +379,7 @@ todos_jogos = buscar_todos_jogos()
 # ==========================================
 # MÓDULO: CRYPTO SNIPER (EM BREVE)
 # ==========================================
-if "Crypto Sniper" in modulo:
+if modulo == "Crypto Sniper":
     st.markdown("<div class='breadcrumb'>📊 Crypto Sniper / <span>Em breve</span></div>", unsafe_allow_html=True)
     st.markdown("<h1 class='main-title'>Sniper de Tokens</h1><p class='sub-title'>Módulo de rastreamento on-chain em construção.</p>", unsafe_allow_html=True)
     st.info("A estrutura do menu já está pronta. Quando quiser, configuraremos a busca de tokens aqui.")
@@ -300,7 +388,6 @@ if "Crypto Sniper" in modulo:
 # TELA 1: GAME SNIPER -> BUSCAR PROJETOS
 # ==========================================
 elif st.session_state.pagina == "Buscar projetos":
-    # Topo: Breadcrumb + Título + Botão Buscar
     col_t1, col_t2 = st.columns([4, 1])
     with col_t1:
         st.markdown("<div class='breadcrumb'>🎮 Game Sniper / <span>Busca</span></div>", unsafe_allow_html=True)
@@ -359,7 +446,6 @@ elif st.session_state.pagina == "Buscar projetos":
             card_html = f"""<div class="sniper-card"><div class="card-top"><div><p class="game-name">{jogo['nome']}</p><span class="badge-tba">A anunciar</span><br><div class="net-pill">{icone_rede_html}</div></div><div class="score-wrapper"><div class="score-box {cor_score}">{score}</div><span class="score-max">/100</span></div></div><div class="progress-bg"><div class="{cor_barra}" style="width: {score}%;"></div></div><div class="meta-line"><span>📅 Encontrado em {jogo.get('data_publicacao', 'Recente')}</span><span>|</span><span>👁️ {views_fmt} visualizações</span></div><div class="links-line"><a href="{jogo.get('twitter_url', '#')}" target="_blank">𝕏</a><span style="color:#262E3B;">|</span><a href="{jogo.get('site_url', '#')}" target="_blank">🌐 Site oficial</a><span style="color:#262E3B;">|</span><a href="{v_url}" target="_blank">↗ Fonte</a></div></div>"""
             st.markdown(card_html, unsafe_allow_html=True)
             
-            # Linha de Botões: [Adicionar à lista / Adicionado] + [...]
             b_add, b_opt = st.columns([5, 1])
             ja_na_lista = jogo.get('kanban_status') in ['Aguardando Lançamento', 'Lançado']
             
@@ -384,7 +470,6 @@ elif st.session_state.pagina == "Buscar projetos":
 # TELA 2: GAME SNIPER -> KANBAN
 # ==========================================
 elif st.session_state.pagina == "Kanban":
-    # Topo: Breadcrumb + Título + 2 Botões
     col_k1, col_k2, col_k3 = st.columns([3.2, 1, 1])
     with col_k1:
         st.markdown("<div class='breadcrumb'>🎮 Game Sniper / <span>Kanban</span></div>", unsafe_allow_html=True)
@@ -399,7 +484,6 @@ elif st.session_state.pagina == "Kanban":
         if st.button("＋  Adicionar projeto", type="primary", use_container_width=True):
             st.session_state.mostrar_form_manual = not st.session_state.mostrar_form_manual
 
-    # Modal/Expander de Adicionar Projeto Manualmente
     if st.session_state.mostrar_form_manual:
         with st.container():
             st.markdown("<div style='background:#12161C; border:1px solid #00E6A8; border-radius:10px; padding:15px; margin-bottom:20px;'>", unsafe_allow_html=True)
@@ -420,7 +504,6 @@ elif st.session_state.pagina == "Kanban":
                         st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
 
-    # Métricas do Kanban
     jogos_ag = [j for j in todos_jogos if j.get('kanban_status') == 'Aguardando Lançamento']
     jogos_lanc = [j for j in todos_jogos if j.get('kanban_status') == 'Lançado']
     total_acomp = len(jogos_ag) + len(jogos_lanc)
@@ -430,7 +513,6 @@ elif st.session_state.pagina == "Kanban":
     with m2: st.markdown(f"<div class='kpi-card'><div class='kpi-icon'>⏳</div><div><p class='kpi-label'>Aguardando lançamento</p><p class='kpi-val'>{len(jogos_ag)}</p></div></div>", unsafe_allow_html=True)
     with m3: st.markdown(f"<div class='kpi-card'><div class='kpi-icon'>🚀</div><div><p class='kpi-label'>Lançados</p><p class='kpi-val'>{len(jogos_lanc)}</p></div></div>", unsafe_allow_html=True)
 
-    # Filtros do Kanban
     kf1, kf2, kf3 = st.columns([3.5, 1.5, 1])
     with kf1: k_busca = st.text_input("Buscar na lista", placeholder="🔍  Buscar na sua lista...", label_visibility="collapsed")
     with kf2: k_rede = st.selectbox("Rede Kanban", ["Todas as redes", "Solana", "Ethereum", "Ronin", "Polygon", "Immutable X", "Outra"], label_visibility="collapsed")
@@ -445,7 +527,6 @@ elif st.session_state.pagina == "Kanban":
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # Função para desenhar cada Card do Kanban
     def desenhar_card_kanban(jogo, lancado=False):
         score = jogo.get('alpha_score', 50)
         cor_score = "score-green" if score >= 80 else "score-yellow" if score >= 60 else "score-red"
@@ -460,7 +541,6 @@ elif st.session_state.pagina == "Kanban":
         k_html = f"""<div class="k-card"><div class="card-top"><div style="display:flex; gap:10px; align-items:center;"><span style="color:#474D57; font-size:16px;">⠿</span><div><p class="game-name" style="font-size:16px; margin-bottom:4px;">{jogo['nome']}</p><div class="net-pill">{icone_rede}</div></div></div><div class="score-box {cor_score}" style="font-size:14px; padding:4px 8px;">{score}</div></div><div class="k-info-line"><span>📅 {dt_txt}</span><span>{'' if lancado else '➕ Definir data'}</span></div><div class="k-note-line"><span>📝 {nota_txt[:38]}</span>{link_acao}</div></div>"""
         st.markdown(k_html, unsafe_allow_html=True)
         
-        # Barra de Ações Rápidas e Menu (...) do Card Kanban
         c_act1, c_act2 = st.columns([4, 1])
         with c_act1:
             if not lancado:
@@ -487,7 +567,6 @@ elif st.session_state.pagina == "Kanban":
                     st.rerun()
         st.markdown("<div style='margin-bottom: 10px;'></div>", unsafe_allow_html=True)
 
-    # Colunas do Quadro Kanban
     col_esq, col_dir = st.columns(2)
     with col_esq:
         st.markdown(f"<div class='kanban-header'><p class='kanban-header-title' style='color:#FCD535;'>🟡 Aguardando lançamento <span class='count-pill'>{len(jogos_ag)}</span></p></div>", unsafe_allow_html=True)
