@@ -2,6 +2,7 @@ import streamlit as st
 from supabase import create_client, Client
 import requests
 import re
+from datetime import datetime, timedelta, timezone
 
 # --- Configuração da Página ---
 st.set_page_config(page_title="Sniper Dashboard", layout="wide", initial_sidebar_state="expanded")
@@ -101,66 +102,80 @@ def inserir_projeto_manual(nome, rede, site_url, twitter_url):
     supabase.table('crypto_games').insert(proj).execute()
     st.toast(f'✅ {nome} adicionado ao radar!', icon='🎯')
 
-# --- Motor Alpha de Social Listening ---
+# --- Motor Alpha de Varredura YouTube (Underground) ---
 def buscar_projetos_reais():
-    with st.spinner('A caçar links underground e anúncios...'):
+    if "YOUTUBE_API_KEY" not in st.secrets:
+        st.error("⚠️ Chave do YouTube não encontrada nos Secrets do Streamlit.")
+        return
+
+    with st.spinner('A analisar vídeos do YouTube das últimas 48 horas...'):
         try:
+            youtube_key = st.secrets["YOUTUBE_API_KEY"]
             existentes_db = supabase.table('crypto_games').select("site_url").execute()
             sites_existentes = [x['site_url'] for x in existentes_db.data if x.get('site_url')]
             
-            url = "https://www.reddit.com/search.json"
-            params = {
-                "q": '("web3 game" OR "crypto game" OR "solana game") AND (launch OR tge OR airdrop OR whitelist OR token)',
-                "sort": "new",
-                "limit": 50
+            # Limite de tempo: vídeos postados nos últimos 2 dias
+            data_limite = (datetime.now(timezone.utc) - timedelta(days=2)).isoformat("T", "seconds").replace("+00:00", "Z")
+            
+            # Passo 1: Procurar IDs de vídeos recentes sobre jogos Web3/Solana
+            search_url = "https://www.googleapis.com/youtube/v3/search"
+            search_params = {
+                "part": "snippet",
+                "q": '("new crypto game" OR "solana game" OR "play to earn") (launch OR gameplay OR airdrop)',
+                "type": "video",
+                "order": "date",
+                "publishedAfter": data_limite,
+                "maxResults": 20,
+                "key": youtube_key
             }
+            search_resp = requests.get(search_url, params=search_params)
             
-            # Passaporte oficial que contorna o erro 403 do Reddit
-            headers = {
-                'User-Agent': 'python:altitude-sniper-bot:v1.0 (by /u/eder_altitude)',
-                'Accept': 'application/json'
+            if search_resp.status_code != 200:
+                st.error(f"Erro na API do YouTube: {search_resp.json().get('error', {}).get('message', 'Acesso Negado')}")
+                return
+                
+            dados_busca = search_resp.json()
+            video_ids = [item['id']['videoId'] for item in dados_busca.get('items', [])]
+            
+            if not video_ids:
+                st.toast('Nenhum vídeo relevante publicado nas últimas 48h.', icon='⚠️')
+                return
+                
+            # Passo 2: Puxar as descrições completas dos vídeos encontrados
+            videos_url = "https://www.googleapis.com/youtube/v3/videos"
+            videos_params = {
+                "part": "snippet",
+                "id": ",".join(video_ids),
+                "key": youtube_key
             }
-            
-            resposta = requests.get(url, params=params, headers=headers)
-            
-            if resposta.status_code == 403:
-                st.error("⚠️ Erro 403 persistente: O Reddit continua a bloquear o servidor da nuvem. O passo seguinte será utilizar uma API especializada em cripto em vez de fóruns públicos.")
-                return
-            elif resposta.status_code == 429:
-                st.error("⚠️ Erro 429: Muitas requisições num curto espaço de tempo. Aguarde uns minutos.")
-                return
-            elif resposta.status_code != 200:
-                st.error(f"⚠️ A fonte recusou a ligação (Erro {resposta.status_code}).")
-                return
-
-            try:
-                dados = resposta.json()
-            except ValueError:
-                st.error("⚠️ Falha ao descodificar os dados.")
-                return
+            videos_resp = requests.get(videos_url, params=videos_params).json()
             
             novos_projetos_inseridos = 0
             
-            for post in dados.get('data', {}).get('children', []):
-                post_data = post['data']
-                titulo = post_data.get('title', '')
-                texto = post_data.get('selftext', '')
-                conteudo_total = (titulo + " " + texto).lower()
+            for item in videos_resp.get('items', []):
+                snippet = item.get('snippet', {})
+                titulo = snippet.get('title', '')
+                descricao = snippet.get('description', '')
+                conteudo_total = (titulo + " " + descricao).lower()
                 
-                urls_encontradas = re.findall(r'https?://[^\s)\]"]+', texto)
+                # Procurar URLs na descrição do vídeo
+                urls_encontradas = re.findall(r'https?://[^\s)\]"]+', descricao)
                 site_url = "#"
                 twitter_url = "#"
                 
                 for link in urls_encontradas:
                     if "twitter.com" in link or "x.com" in link:
                         twitter_url = link
-                    elif any(ext in link for ext in [".fun", ".gg", ".io", ".net", ".com", "linktr.ee"]) and "reddit" not in link:
+                    elif any(ext in link for ext in [".fun", ".gg", ".io", ".net", ".com", "linktr.ee"]) and "youtube" not in link and "youtu.be" not in link:
                         site_url = link
                 
+                # Ignorar se não houver site ou se já estiver no painel
                 if site_url == "#" or site_url in sites_existentes:
                     continue
-                    
-                nome_projeto = " ".join(titulo.split()[0:4]).replace("[", "").replace("]", "")
+                
+                # Limpar o título do vídeo para extrair um nome provável para o jogo
+                nome_limpo = re.sub(r'[^a-zA-Z0-9\s]', '', titulo)
+                nome_projeto = " ".join(nome_limpo.split()[0:4]).capitalize()
                 
                 rede = "Ethereum / Outra"
                 if "solana" in conteudo_total or "sol" in conteudo_total: rede = "Solana"
@@ -168,29 +183,31 @@ def buscar_projetos_reais():
                 elif "immutable" in conteudo_total or "imx" in conteudo_total: rede = "Immutable X"
                 elif "polygon" in conteudo_total: rede = "Polygon"
                 
-                score = 60
-                if "whitelist" in conteudo_total: score += 15
-                if "q4" in conteudo_total or "q1" in conteudo_total: score += 10
-                if twitter_url != "#": score += 10
+                # Sistema de Score ajustado para o YouTube
+                score = 65 
+                if "whitelist" in conteudo_total: score += 10
+                if "airdrop" in conteudo_total: score += 10
+                if twitter_url != "#": score += 15
                 
                 proj = {
                     "nome": nome_projeto[:25],
                     "ticker": "TBA",
                     "rede": rede,
-                    "estagio": "Pre-Launch / Underground",
-                    "investidores": "Prospecção Automática",
+                    "estagio": "Underground / YouTube",
+                    "investidores": "Prospecção YouTube",
                     "twitter_url": twitter_url,
                     "site_url": site_url,
                     "alpha_score": min(score, 100)
                 }
                 
                 supabase.table('crypto_games').insert(proj).execute()
+                sites_existentes.append(site_url) # Previne duplicação na mesma leitura
                 novos_projetos_inseridos += 1
                 
             if novos_projetos_inseridos > 0:
-                st.toast(f'Varredura concluída! {novos_projetos_inseridos} projetos novos encontrados.', icon='📡')
+                st.toast(f'Varredura concluída! {novos_projetos_inseridos} projetos novos extraídos do YouTube.', icon='📡')
             else:
-                st.toast('Nenhum link novo encontrado nesta varredura.', icon='⚠️')
+                st.toast('Vídeos analisados, mas nenhum link de site válido foi encontrado nas descrições.', icon='⚠️')
                 
         except Exception as e:
             st.error(f"Erro inesperado no sistema de busca: {e}")
@@ -253,7 +270,7 @@ else:
                 <span class="tag">🕒 {jogo.get('estagio', 'N/A')}</span>
             </div>
             <div style="font-size: 13px; color: #CCC; margin-bottom: 15px;">
-                <strong>VCs:</strong> {jogo.get('investidores', 'N/A')}
+                <strong>Origem:</strong> {jogo.get('investidores', 'N/A')}
             </div>
             <div class="links-row">
                 <a href="{jogo.get('twitter_url', '#')}" target="_blank">🐦 Twitter</a>
