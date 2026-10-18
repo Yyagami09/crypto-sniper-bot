@@ -201,3 +201,66 @@ with st.sidebar:
                 # Sem st.rerun() para mostrar o toast corretamente
 
     st.divider()
+    st.subheader("Filtros")
+    filtro_rede = st.selectbox("Filtrar por Rede", ["Todas", "Solana", "Ronin", "Immutable X", "Polygon", "Avalanche", "Outra"])
+
+    st.divider()
+    if st.button("🚨 Limpar Todo o Dashboard", type="primary"):
+        limpar_dashboard_inteiro()
+        # Sem st.rerun() aqui também
+
+# Renderização dos Dados
+jogos = buscar_jogos()
+
+if not jogos:
+    st.info("O radar está limpo. Busque novos projetos ou insira links manualmente.")
+else:
+    col1, col2, col3 = st.columns(3)
+    
+    for idx, jogo in enumerate(jogos):
+        if filtro_rede != "Todas" and jogo['rede'] != filtro_rede:
+            continue
+            
+        score = jogo['alpha_score']
+        badge_class = "score-badge"
+        if score < 60: badge_class += " low"
+        elif score < 85: badge_class += " medium"
+        
+        card_html = f"""
+        <div class="sniper-card">
+            <div class="card-header">
+                <p class="game-title">{jogo['nome']} <span style="font-size:14px; color:#888;">{jogo['ticker'] or ''}</span></p>
+                <div class="{badge_class}">{score}</div>
+            </div>
+            <div class="tags-row">
+                <span class="tag">⛓️ {jogo['rede']}</span>
+                <span class="tag">🕒 {jogo.get('estagio', 'N/A')}</span>
+            </div>
+            <div style="font-size: 13px; color: #CCC; margin-bottom: 15px;">
+                <strong>VCs:</strong> {jogo.get('investidores', 'N/A')}
+            </div>
+            <div class="links-row">
+                <a href="{jogo.get('twitter_url', '#')}" target="_blank">🐦 Twitter</a>
+                <a href="{jogo.get('site_url', '#')}" target="_blank">🌐 Site Oficial</a>
+            </div>
+        </div>
+        """
+        
+        if idx % 3 == 0:
+            with col1: 
+                st.markdown(card_html, unsafe_allow_html=True)
+                if st.button("🗑️ Apagar", key=f"del_{jogo['id']}"):
+                    apagar_jogo(jogo['id'])
+                    st.rerun() # Aqui o rerun é obrigatório para o card desaparecer imediatamente
+        elif idx % 3 == 1:
+            with col2: 
+                st.markdown(card_html, unsafe_allow_html=True)
+                if st.button("🗑️ Apagar", key=f"del_{jogo['id']}"):
+                    apagar_jogo(jogo['id'])
+                    st.rerun()
+        else:
+            with col3: 
+                st.markdown(card_html, unsafe_allow_html=True)
+                if st.button("🗑️ Apagar", key=f"del_{jogo['id']}"):
+                    apagar_jogo(jogo['id'])
+                    st.rerun()
