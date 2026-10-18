@@ -5,6 +5,7 @@ import re
 from datetime import datetime, timedelta, timezone
 
 # --- Configuração da Página ---
+# Agora sem o título solto, usamos apenas layout wide
 st.set_page_config(page_title="Sniper Dashboard", layout="wide", initial_sidebar_state="expanded")
 
 # --- Conexão Segura com Supabase ---
@@ -16,13 +17,42 @@ def init_connection():
 
 supabase: Client = init_connection()
 
-# --- Estilização CSS dos Cards ---
+# --- Estilização CSS Personalizada ---
 css = """
 <style>
+/* Estilo Moderno para os Botões Padrão (Streamlit) */
+div.stButton > button:first-child {
+    background-color: #2B2B36;
+    color: #FFFFFF;
+    border: 1px solid #3A3A4A;
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    transition: all 0.3s ease;
+    font-weight: 600;
+}
+div.stButton > button:first-child:hover {
+    border-color: #00BFFF;
+    color: #00BFFF;
+    box-shadow: 0 0 12px rgba(0, 191, 255, 0.2);
+}
+
+/* Estilo para Botão de Atenção (Limpar Dashboard) */
+div.stButton > button[kind="primary"] {
+    background-color: #3b1c1c;
+    border-color: #FF3333;
+    color: #FF3333;
+}
+div.stButton > button[kind="primary"]:hover {
+    background-color: #FF3333;
+    color: #FFFFFF;
+    box-shadow: 0 0 12px rgba(255, 51, 51, 0.4);
+}
+
+/* Cartões e Textos */
 .sniper-card {
     background-color: #1E1E24;
-    border-radius: 10px;
-    padding: 15px;
+    border-radius: 12px;
+    padding: 18px;
     margin-bottom: 5px;
     border: 1px solid #333;
 }
@@ -30,37 +60,53 @@ css = """
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 10px;
+    margin-bottom: 15px;
+}
+.game-title-label {
+    background-color: #2A2A38;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border-left: 4px solid #00BFFF;
+    display: flex;
+    align-items: baseline;
 }
 .game-title {
-    font-size: 20px;
-    font-weight: bold;
+    font-size: 18px;
+    font-weight: 800;
     color: #FFF;
     margin: 0;
+}
+.game-ticker {
+    font-size: 12px;
+    color: #888;
+    margin-left: 8px;
+    font-weight: normal;
 }
 .score-badge {
     background-color: #00FF66;
     color: #000;
     font-weight: 900;
     font-size: 18px;
-    padding: 5px 10px;
-    border-radius: 5px;
-    box-shadow: 0 0 10px rgba(0, 255, 102, 0.5);
+    padding: 5px 12px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 255, 102, 0.4);
 }
-.score-badge.medium { background-color: #FFD700; box-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
-.score-badge.low { background-color: #FF3333; color: white; box-shadow: 0 0 10px rgba(255, 51, 51, 0.5); }
+.score-badge.medium { background-color: #FFD700; box-shadow: 0 0 10px rgba(255, 215, 0, 0.4); }
+.score-badge.low { background-color: #FF3333; color: white; box-shadow: 0 0 10px rgba(255, 51, 51, 0.4); }
 .tags-row { margin-bottom: 15px; font-size: 14px; color: #AAA;}
-.tag { background: #333; padding: 3px 8px; border-radius: 4px; margin-right: 5px; color: #FFF; font-size: 12px;}
-.info-row { font-size: 13px; color: #CCC; margin-bottom: 5px; }
+.tag { background: #333; padding: 4px 10px; border-radius: 6px; margin-right: 6px; color: #FFF; font-size: 12px;}
+.info-row { font-size: 13px; color: #CCC; margin-bottom: 6px; }
+.links-row { margin-top: 15px; padding-top: 15px; border-top: 1px solid #333;}
 .links-row a {
     text-decoration: none;
     color: #00BFFF;
     margin-right: 15px;
     font-size: 14px;
     font-weight: bold;
+    transition: color 0.2s;
 }
 .links-row a:hover { color: #FFF; }
-.yt-link { color: #FF0000 !important; }
+.yt-link { color: #FF6B6B !important; } /* Vermelho Coral suave */
 </style>
 """
 st.markdown(css, unsafe_allow_html=True)
@@ -74,7 +120,7 @@ def apagar_jogo(jogo_id):
     try:
         supabase.table('crypto_games').delete().eq('id', jogo_id).execute()
     except Exception as e:
-        st.error(f"Erro de permissão ao apagar: {e}")
+        st.error(f"Erro de permissão ao deletar: {e}")
 
 def limpar_dashboard_inteiro():
     try:
@@ -121,7 +167,6 @@ def extrair_nome_provavel(titulo, site_url):
             
     titulo_limpo = re.sub(r'[^a-zA-Z0-9\s]', '', titulo)
     palavras = titulo_limpo.split()
-    # Adicionadas palavras-chave do mercado brasileiro de cripto games
     stop_words = ['new', 'crypto', 'game', 'play', 'to', 'earn', 'free', 'solana', 'airdrop', 'the', 'best', 'review', 'tutorial', 'top', 'upcoming', 'update', 'everyday', 'setiap', 'hari', 'novo', 'jogo', 'nft', 'pagando', 'ganhar', 'dinheiro', 'gratis', 'grátis', 'lançamento', 'analise', 'análise', 'como', 'funciona', 'vale', 'a', 'pena']
     palavras_chave = [p for p in palavras if p.lower() not in stop_words]
     
@@ -129,30 +174,30 @@ def extrair_nome_provavel(titulo, site_url):
          return " ".join(palavras_chave[0:3]).capitalize()
     return " ".join(palavras[0:3]).capitalize() if palavras else "Unknown"
 
-# --- Motor Alpha de Varredura YouTube ---
+# --- Motor Alpha de Varredura YouTube (Aumento para 5 Dias) ---
 def buscar_projetos_reais():
     if "YOUTUBE_API_KEY" not in st.secrets:
         st.error("⚠️ Chave do YouTube não encontrada nos Secrets do Streamlit.")
         return
 
-    with st.spinner('A analisar vídeos do YouTube das últimas 48 horas (Gringos e BRs)...'):
+    with st.spinner('A analisar vídeos do YouTube dos últimos 5 dias...'):
         try:
             youtube_key = st.secrets["YOUTUBE_API_KEY"]
             existentes_db = supabase.table('crypto_games').select("site_url", "video_url").execute()
             sites_existentes = [x['site_url'] for x in existentes_db.data if x.get('site_url') and x.get('site_url') != "#"]
             videos_existentes = [x['video_url'] for x in existentes_db.data if x.get('video_url') and x.get('video_url') != "#"]
             
-            data_limite = (datetime.now(timezone.utc) - timedelta(days=2)).isoformat("T", "seconds").replace("+00:00", "Z")
+            # Período estendido para 5 dias
+            data_limite = (datetime.now(timezone.utc) - timedelta(days=5)).isoformat("T", "seconds").replace("+00:00", "Z")
             
             search_url = "https://www.googleapis.com/youtube/v3/search"
-            # Query expandida para captar o mercado brasileiro também
             search_params = {
                 "part": "snippet",
                 "q": '("new crypto game" OR "solana game" OR "play to earn" OR "novo jogo nft" OR "jogo nft") (launch OR gameplay OR airdrop OR lançamento)',
                 "type": "video",
                 "order": "date",
                 "publishedAfter": data_limite,
-                "maxResults": 30, # Aumentei um pouco o limite para caber os dois idiomas
+                "maxResults": 40,
                 "key": youtube_key
             }
             search_resp = requests.get(search_url, params=search_params)
@@ -165,7 +210,7 @@ def buscar_projetos_reais():
             video_ids = [item['id']['videoId'] for item in dados_busca.get('items', [])]
             
             if not video_ids:
-                st.toast('Nenhum vídeo relevante publicado nas últimas 48h.', icon='⚠️')
+                st.toast('Nenhum vídeo relevante publicado nos últimos 5 dias.', icon='⚠️')
                 return
                 
             videos_url = "https://www.googleapis.com/youtube/v3/videos"
@@ -254,45 +299,49 @@ def buscar_projetos_reais():
                 novos_projetos_inseridos += 1
                 
             if novos_projetos_inseridos > 0:
-                st.toast(f'Varredura concluída! {novos_projetos_inseridos} projetos novos extraídos do YouTube.', icon='📡')
+                st.toast(f'Varredura concluída! {novos_projetos_inseridos} projetos novos extraídos.', icon='📡')
             else:
-                st.toast('Vídeos analisados, mas nenhum link de site válido foi encontrado nas descrições.', icon='⚠️')
+                st.toast('Busca feita (5 dias). Nenhum link novo encontrado.', icon='⚠️')
                 
         except Exception as e:
             st.error(f"Erro inesperado no sistema de busca: {e}")
 
-# --- Interface do Usuário ---
-st.title("🎯 Crypto Sniper Dashboard")
-
-# Barra Lateral (Menu)
+# --- Barra Lateral (Menu e Controles) ---
 with st.sidebar:
-    st.header("⚙️ Controles e Caça")
+    # Título do Dashboard Movido para aqui
+    st.markdown("<h2 style='text-align: center; margin-bottom: 30px; color: #FFF;'>🎯 Crypto Sniper<br>Dashboard</h2>", unsafe_allow_html=True)
     
-    if st.button("📡 Buscar Projetos Underground"):
+    # Botão de Busca Modernizado
+    if st.button("🚀 Buscar Crypto Games", use_container_width=True):
         buscar_projetos_reais()
         
     st.divider()
     
-    with st.expander("➕ Adicionar Projeto Manualmente"):
+    st.subheader("🔎 Filtros")
+    filtro_rede = st.selectbox("Rede", ["Todas", "Solana", "Ronin", "Immutable X", "Polygon", "Avalanche", "Outra"])
+    
+    st.divider()
+    
+    # Nome do Expander Limpo
+    with st.expander("Adicionar Projeto"):
         with st.form("form_manual"):
             m_nome = st.text_input("Nome do Jogo")
             m_rede = st.selectbox("Rede", ["Solana", "Ronin", "Immutable X", "Polygon", "Avalanche", "Outra"])
             m_site = st.text_input("Link do Site")
             m_twitter = st.text_input("Link do Twitter")
-            submit_manual = st.form_submit_button("Salvar no Radar")
+            submit_manual = st.form_submit_button("Salvar no Radar", use_container_width=True)
             if submit_manual and m_nome:
                 inserir_projeto_manual(m_nome, m_rede, m_site, m_twitter)
 
     st.divider()
-    st.subheader("Filtros")
-    filtro_rede = st.selectbox("Filtrar por Rede", ["Todas", "Solana", "Ronin", "Immutable X", "Polygon", "Avalanche", "Outra"])
-
-    st.divider()
-    if st.button("🚨 Limpar Todo o Dashboard", type="primary"):
+    if st.button("🚨 Limpar Todo o Dashboard", type="primary", use_container_width=True):
         limpar_dashboard_inteiro()
 
-# Renderização dos Dados
+# --- Renderização Principal dos Dados ---
 jogos = buscar_jogos()
+
+# Espaçamento para o conteúdo não colar no topo
+st.markdown("<br>", unsafe_allow_html=True)
 
 if not jogos:
     st.info("O radar está limpo. Busque novos projetos ou insira links manualmente.")
@@ -315,7 +364,10 @@ else:
         card_html = f"""
         <div class="sniper-card">
             <div class="card-header">
-                <p class="game-title">{jogo['nome']} <span style="font-size:14px; color:#888;">{jogo['ticker'] or ''}</span></p>
+                <div class="game-title-label">
+                    <span class="game-title">{jogo['nome']}</span>
+                    <span class="game-ticker">{jogo['ticker'] or ''}</span>
+                </div>
                 <div class="{badge_class}">{score}</div>
             </div>
             <div class="tags-row">
@@ -325,7 +377,7 @@ else:
             <div class="info-row">
                 <strong>📅 Publicado:</strong> {data_pub} | <strong>👁️ Views:</strong> {views}
             </div>
-            <div class="info-row" style="margin-bottom: 15px;">
+            <div class="info-row">
                 <strong>Origem:</strong> {jogo.get('investidores', 'N/A')}
             </div>
             <div class="links-row">
@@ -339,18 +391,18 @@ else:
         if idx % 3 == 0:
             with col1: 
                 st.markdown(card_html, unsafe_allow_html=True)
-                if st.button("🗑️ Apagar", key=f"del_{jogo['id']}"):
+                if st.button("Deletar", key=f"del_{jogo['id']}", use_container_width=True):
                     apagar_jogo(jogo['id'])
                     st.rerun()
         elif idx % 3 == 1:
             with col2: 
                 st.markdown(card_html, unsafe_allow_html=True)
-                if st.button("🗑️ Apagar", key=f"del_{jogo['id']}"):
+                if st.button("Deletar", key=f"del_{jogo['id']}", use_container_width=True):
                     apagar_jogo(jogo['id'])
                     st.rerun()
         else:
             with col3: 
                 st.markdown(card_html, unsafe_allow_html=True)
-                if st.button("🗑️ Apagar", key=f"del_{jogo['id']}"):
+                if st.button("Deletar", key=f"del_{jogo['id']}", use_container_width=True):
                     apagar_jogo(jogo['id'])
                     st.rerun()
