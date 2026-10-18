@@ -91,7 +91,7 @@ div.stButton > button[kind="primary"]:hover { background-color: #00C892 !importa
 @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(0,220,176, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(0,220,176, 0); } 100% { box-shadow: 0 0 0 0 rgba(0,220,176, 0); } }
 .sentinel-text { color: #00DCB0; font-size: 16px; font-weight: 700; letter-spacing: 1px; }
 
-/* Kanban Cards */
+/* Kanban Cards e Timer */
 .kanban-header { background-color: #12161C; border: 1px solid #1E242D; border-radius: 10px; padding: 12px 16px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
 .kanban-header-title { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; margin: 0; }
 .count-pill { background-color: #1E242D; color: #848E9C; font-size: 12px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
@@ -99,6 +99,9 @@ div.stButton > button[kind="primary"]:hover { background-color: #00C892 !importa
 .k-info-line { font-size: 12px; color: #848E9C; margin-top: 10px; display: flex; justify-content: space-between; align-items: center; }
 .k-note-line { font-size: 12px; color: #6C7582; margin-top: 6px; display: flex; justify-content: space-between; align-items: center; font-style: italic; }
 .k-action-link { color: #00E6A8 !important; text-decoration: none; font-weight: 600; font-size: 12px; }
+
+/* O Novo Timer Regressivo */
+.k-countdown { background-color: #071B17; border: 1px solid #00DCB0; color: #00E6A8; font-family: monospace; font-size: 13px; font-weight: bold; text-align: center; padding: 6px; border-radius: 6px; margin-top: 10px; box-shadow: inset 0 0 8px rgba(0,220,176,0.1); letter-spacing: 1px; transition: all 0.3s;}
 </style>
 """
 st.markdown(css, unsafe_allow_html=True)
@@ -114,9 +117,24 @@ def obter_icone_rede(rede):
     elif "immutable" in r: return '🛡️ Immutable X'
     return f'⛓️ {rede}'
 
+# --- Conversor de Data para o Timer ---
+def data_pt_para_iso(data_str):
+    meses = {"jan":"01", "fev":"02", "mar":"03", "abr":"04", "mai":"05", "jun":"06", "jul":"07", "ago":"08", "set":"09", "out":"10", "nov":"11", "dez":"12"}
+    try:
+        partes = data_str.split()
+        if len(partes) == 3:
+            dia = partes[0].zfill(2)
+            mes = meses.get(partes[1].lower(), "01")
+            ano = partes[2]
+            return f"{ano}-{mes}-{dia}T00:00:00"
+    except:
+        pass
+    return ""
+
 # --- Funções de Banco de Dados ---
 def buscar_todos_jogos():
-    res = supabase.table('crypto_games').select("*").order('alpha_score', desc=True).execute()
+    # Ordenado por ID decrescente para os mais recentes ficarem no topo (Fim da fila resolvido)
+    res = supabase.table('crypto_games').select("*").order('id', desc=True).execute()
     return res.data or []
 
 def apagar_jogo(jogo_id):
@@ -155,7 +173,7 @@ def inserir_projeto_manual(nome, rede, site_url, twitter_url, etapa="Aguardando 
     supabase.table('crypto_games').insert(proj).execute()
     st.toast(f'✅ {nome} adicionado em {etapa}!', icon='🎯')
 
-# --- Funções Auxiliares e Motor YouTube ---
+# --- Funções Auxiliares e Motor YouTube Otimizado ---
 def extrair_nome_provavel(titulo, site_url):
     if site_url != "#":
         url_limpa = site_url.split('?')[0]
@@ -170,7 +188,7 @@ def extrair_nome_provavel(titulo, site_url):
     if palavras_chave: return " ".join(palavras_chave[0:3]).capitalize()
     return " ".join(palavras[0:3]).capitalize() if palavras else "Unknown"
 
-def buscar_projetos_reais():
+def buscar_projetos_reais(custom_query=None):
     if "YOUTUBE_API_KEY" not in st.secrets:
         st.error("⚠️ Chave do YouTube não encontrada nos Secrets do Streamlit.")
         return
@@ -184,9 +202,14 @@ def buscar_projetos_reais():
             
             data_limite = (datetime.now(timezone.utc) - timedelta(days=5)).isoformat("T", "seconds").replace("+00:00", "Z")
             search_url = "https://www.googleapis.com/youtube/v3/search"
+            
+            # Novo motor de palavras-chave ampliado para captar "Evermagic", "Tokens" e "Ganhar dinheiro"
+            query_padrao = '("novo jogo nft" OR "jogo nft" OR "crypto game" OR "play to earn" OR "mmorpg nft") (pagando OR ganhei dinheiro OR tokens OR token OR lançamento OR airdrop OR review)'
+            query_final = custom_query if custom_query and len(custom_query.strip()) > 0 else query_padrao
+
             search_params = {
                 "part": "snippet",
-                "q": '("new crypto game" OR "solana game" OR "play to earn" OR "novo jogo nft" OR "jogo nft") (launch OR gameplay OR airdrop OR lançamento)',
+                "q": query_final,
                 "type": "video", "order": "date", "publishedAfter": data_limite, "maxResults": 40, "key": youtube_key
             }
             search_resp = requests.get(search_url, params=search_params)
@@ -247,7 +270,7 @@ def buscar_projetos_reais():
                 proj = {
                     "nome": nome_projeto[:25], "ticker": "A anunciar", "rede": rede, "alpha_score": min(score, 100),
                     "estagio": "YouTube", "investidores": "YouTube", "twitter_url": twitter_url, "site_url": site_url,
-                    "alpha_score": min(score, 100), "data_publicacao": data_pub, "visualizacoes": visualizacoes,
+                    "data_publicacao": data_pub, "visualizacoes": visualizacoes,
                     "video_url": video_link, "kanban_status": "Radar", "anotacoes": ""
                 }
                 supabase.table('crypto_games').insert(proj).execute()
@@ -349,6 +372,8 @@ if modulo == "Crypto Sniper":
 # TELA 1: GAME SNIPER -> BUSCAR PROJETOS
 # ==========================================
 elif st.session_state.pagina == "Buscar projetos":
+    
+    # --- Topo (Títulos e Botões de Controle) ---
     col_t1, col_t2, col_t3 = st.columns([2.8, 1, 1.2])
     with col_t1:
         st.markdown("<div class='breadcrumb'>🎮 Game Sniper / <span>Busca</span></div>", unsafe_allow_html=True)
@@ -367,224 +392,44 @@ elif st.session_state.pagina == "Buscar projetos":
         else:
             if st.button("▶ Iniciar Auto Sniper", type="primary", use_container_width=True):
                 st.session_state.auto_sniper = True
-                # Dispara a busca imediatamente no primeiro clique!
                 buscar_projetos_reais()
                 st.rerun()
 
-    # --- LÓGICA DO MODO AUTO SNIPER (Disparo Imediato + Timer 15 mins) ---
+    # --- Busca Manual Customizada (Opcional) ---
+    with st.expander("⚙️ Busca Manual (Palavras-chave personalizadas)"):
+        c_kw, c_btn = st.columns([3, 1])
+        with c_kw:
+            custom_query = st.text_input("Termos de Busca", placeholder='Ex: "evermagic" OR "novo mmo nft" (Vazio = Radar Padrão)', label_visibility="collapsed")
+        with c_btn:
+            if st.button("⌖ Buscar Agora", use_container_width=True, type="primary"):
+                buscar_projetos_reais(custom_query)
+                st.rerun()
+
+    # --- LÓGICA DO AUTO SNIPER (Timer 15 mins) ---
     if st.session_state.auto_sniper:
         st.markdown(f"<div class='sentinel-hud'><div class='sentinel-pulse'></div><div class='sentinel-text'>AUTO SNIPER ATIVO - PRÓXIMA VARREDURA EM: <span id='timer'>15:00</span></div></div>", unsafe_allow_html=True)
-        
         st.markdown("<div style='display: none;'>", unsafe_allow_html=True)
         if st.button("TRIGGER_AUTOSNIPER", key="trigger_btn"):
             buscar_projetos_reais()
         st.markdown("</div>", unsafe_allow_html=True)
-        
         components.html("""
         <script>
-            var timeLeft = 900; // 15 minutos em segundos
+            var timeLeft = 900; 
             var timerId = setInterval(function() {
                 var m = Math.floor(timeLeft / 60);
                 var s = timeLeft % 60;
                 var display = (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
-                
                 var parentDoc = window.parent.document;
                 var timerSpan = parentDoc.getElementById('timer');
                 if(timerSpan) { timerSpan.innerHTML = display; }
-
                 if (timeLeft <= 0) {
                     clearInterval(timerId);
                     if(timerSpan) { timerSpan.innerHTML = "Buscando..."; }
-                    
                     var buttons = parentDoc.querySelectorAll('button');
-                    buttons.forEach(function(btn) {
-                        if(btn.innerText.includes('TRIGGER_AUTOSNIPER')) {
-                            btn.click();
-                        }
-                    });
+                    buttons.forEach(function(btn) { if(btn.innerText.includes('TRIGGER_AUTOSNIPER')) { btn.click(); } });
                 }
                 timeLeft--;
             }, 1000);
-            
             setTimeout(function() {
                 var parentDoc = window.parent.document;
                 var buttons = parentDoc.querySelectorAll('button');
-                buttons.forEach(function(btn) {
-                    if(btn.innerText.includes('TRIGGER_AUTOSNIPER')) {
-                        btn.style.display = 'none';
-                    }
-                });
-            }, 100);
-        </script>
-        """, height=0, width=0)
-
-    total_enc = len(todos_jogos)
-    score_alto = len([j for j in todos_jogos if (j.get('alpha_score') or 0) >= 80])
-    na_lista = len([j for j in todos_jogos if j.get('kanban_status') in ['Aguardando Lançamento', 'Lançado']])
-    
-    k1, k2, k3 = st.columns(3)
-    with k1: st.markdown(f"<div class='kpi-card'><div class='kpi-icon'>📄</div><div><p class='kpi-label'>Projetos encontrados</p><p class='kpi-val'>{total_enc}</p></div></div>", unsafe_allow_html=True)
-    with k2: st.markdown(f"<div class='kpi-card'><div class='kpi-icon'>⭐</div><div><p class='kpi-label'>Score acima de 80</p><p class='kpi-val'>{score_alto}</p></div></div>", unsafe_allow_html=True)
-    with k3: st.markdown(f"<div class='kpi-card'><div class='kpi-icon'>🔖</div><div><p class='kpi-label'>Na sua lista</p><p class='kpi-val'>{na_lista}</p></div></div>", unsafe_allow_html=True)
-
-    f1, f2, f3, f4 = st.columns([3, 1.5, 1.5, 1.5])
-    with f1: termo_busca = st.text_input("Buscar", placeholder="🔍  Buscar por nome...", label_visibility="collapsed")
-    with f2: filtro_rede = st.selectbox("Rede", ["Todas as redes", "Solana", "Ethereum", "Ronin", "Polygon", "Immutable X", "Outra"], label_visibility="collapsed")
-    with f3: filtro_status = st.selectbox("Status", ["Todos os status", "Não adicionados", "Na minha lista"], label_visibility="collapsed")
-    with f4: ordem = st.selectbox("Ordem", ["↓↑ Maior score", "↓↑ Mais visualizações"], label_visibility="collapsed")
-
-    jogos_filtrados = todos_jogos
-    if termo_busca: jogos_filtrados = [j for j in jogos_filtrados if termo_busca.lower() in j['nome'].lower()]
-    if filtro_rede != "Todas as redes": jogos_filtrados = [j for j in jogos_filtrados if filtro_rede.lower() in (j.get('rede') or '').lower()]
-    if filtro_status == "Não adicionados": jogos_filtrados = [j for j in jogos_filtrados if j.get('kanban_status') not in ['Aguardando Lançamento', 'Lançado']]
-    elif filtro_status == "Na minha lista": jogos_filtrados = [j for j in jogos_filtrados if j.get('kanban_status') in ['Aguardando Lançamento', 'Lançado']]
-    if "visualizações" in ordem: jogos_filtrados = sorted(jogos_filtrados, key=lambda x: int(x.get('visualizacoes') or 0) if str(x.get('visualizacoes')).isdigit() else 0, reverse=True)
-
-    st.markdown(f"<p style='font-size:13px; color:#848E9C; margin: 10px 0 15px 0;'>{len(jogos_filtrados)} projetos encontrados</p>", unsafe_allow_html=True)
-
-    cols = st.columns(3)
-    for idx, jogo in enumerate(jogos_filtrados):
-        with cols[idx % 3]:
-            score = jogo.get('alpha_score', 50)
-            cor_score = "score-green" if score >= 80 else "score-yellow" if score >= 60 else "score-red"
-            cor_barra = "progress-fill-green" if score >= 80 else "progress-fill-yellow" if score >= 60 else "progress-fill-red"
-            
-            views_raw = jogo.get('visualizacoes', '0')
-            views_fmt = f"{int(views_raw):,}".replace(",", ".") if str(views_raw).isdigit() else views_raw
-            icone_rede_html = obter_icone_rede(jogo.get('rede', 'Outra'))
-            v_url = jogo.get('video_url', '#')
-            
-            card_html = f"""<div class="sniper-card"><div class="card-top"><div><p class="game-name">{jogo['nome']}</p><span class="badge-tba">A anunciar</span><br><div class="net-pill">{icone_rede_html}</div></div><div class="score-wrapper"><div class="score-box {cor_score}">{score}</div><span class="score-max">/100</span></div></div><div class="progress-bg"><div class="{cor_barra}" style="width: {score}%;"></div></div><div class="meta-line"><span>📅 Encontrado em {jogo.get('data_publicacao', 'Recente')}</span><span>|</span><span>👁️ {views_fmt} visualizações</span></div><div class="links-line"><a href="{jogo.get('twitter_url', '#')}" target="_blank">𝕏</a><span style="color:#262E3B;">|</span><a href="{jogo.get('site_url', '#')}" target="_blank">🌐 Site oficial</a><span style="color:#262E3B;">|</span><a href="{v_url}" target="_blank">↗ Fonte</a></div></div>"""
-            st.markdown(card_html, unsafe_allow_html=True)
-            
-            b_add, b_opt = st.columns([5, 1])
-            ja_na_lista = jogo.get('kanban_status') in ['Aguardando Lançamento', 'Lançado']
-            
-            with b_add:
-                if ja_na_lista:
-                    if st.button("✓  Adicionado", key=f"added_{jogo['id']}", use_container_width=True):
-                        atualizar_status_kanban(jogo['id'], 'Radar')
-                        st.rerun()
-                else:
-                    if st.button("＋  Adicionar à lista", key=f"add_{jogo['id']}", use_container_width=True):
-                        atualizar_status_kanban(jogo['id'], 'Aguardando Lançamento')
-                        st.rerun()
-            
-            with b_opt:
-                st.markdown('<div class="btn-deletar-x">', unsafe_allow_html=True)
-                if st.button("✖", key=f"del_{jogo['id']}", use_container_width=True, help="Deletar projeto"):
-                    apagar_jogo(jogo['id'])
-                    st.rerun()
-                st.markdown('</div>', unsafe_allow_html=True)
-                    
-            st.markdown("<div style='margin-bottom: 12px;'></div>", unsafe_allow_html=True)
-
-# ==========================================
-# TELA 2: GAME SNIPER -> KANBAN
-# ==========================================
-elif st.session_state.pagina == "Kanban":
-    col_k1, col_k2, col_k3 = st.columns([3.2, 1, 1])
-    with col_k1:
-        st.markdown("<div class='breadcrumb'>🎮 Game Sniper / <span>Kanban</span></div>", unsafe_allow_html=True)
-        st.markdown("<h1 class='main-title'>Seu radar de projetos</h1><p class='sub-title'>Organize os jogos que você quer acompanhar.</p>", unsafe_allow_html=True)
-    with col_k2:
-        st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("🧭  Explorar projetos", use_container_width=True):
-            st.session_state.pagina = "Buscar projetos"
-            st.rerun()
-    with col_k3:
-        st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("＋  Adicionar projeto", type="primary", use_container_width=True):
-            st.session_state.mostrar_form_manual = not st.session_state.mostrar_form_manual
-
-    if st.session_state.mostrar_form_manual:
-        with st.container():
-            st.markdown("<div style='background:#12161C; border:1px solid #00E6A8; border-radius:10px; padding:15px; margin-bottom:20px;'>", unsafe_allow_html=True)
-            with st.form("form_novo_kanban"):
-                st.subheader("➕ Novo Projeto no Radar")
-                c1, c2 = st.columns(2)
-                m_nome = c1.text_input("Nome do Jogo")
-                m_rede = c2.selectbox("Rede", ["Solana", "Ethereum", "Ronin", "Immutable X", "Polygon", "Avalanche", "Outra"])
-                c3, c4, c5 = st.columns(3)
-                m_site = c3.text_input("Link do Site Oficial")
-                m_tw = c4.text_input("Link do X / Twitter")
-                m_etapa = c5.selectbox("Etapa Inicial", ["Aguardando Lançamento", "Lançado"])
-                
-                if st.form_submit_button("Salvar Projeto", type="primary"):
-                    if m_nome:
-                        inserir_projeto_manual(m_nome, m_rede, m_site, m_tw, m_etapa)
-                        st.session_state.mostrar_form_manual = False
-                        st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
-
-    jogos_ag = [j for j in todos_jogos if j.get('kanban_status') == 'Aguardando Lançamento']
-    jogos_lanc = [j for j in todos_jogos if j.get('kanban_status') == 'Lançado']
-    total_acomp = len(jogos_ag) + len(jogos_lanc)
-
-    m1, m2, m3 = st.columns(3)
-    with m1: st.markdown(f"<div class='kpi-card'><div class='kpi-icon'>🔖</div><div><p class='kpi-label'>Acompanhando</p><p class='kpi-val'>{total_acomp}</p></div></div>", unsafe_allow_html=True)
-    with m2: st.markdown(f"<div class='kpi-card'><div class='kpi-icon'>⏳</div><div><p class='kpi-label'>Aguardando lançamento</p><p class='kpi-val'>{len(jogos_ag)}</p></div></div>", unsafe_allow_html=True)
-    with m3: st.markdown(f"<div class='kpi-card'><div class='kpi-icon'>🚀</div><div><p class='kpi-label'>Lançados</p><p class='kpi-val'>{len(jogos_lanc)}</p></div></div>", unsafe_allow_html=True)
-
-    kf1, kf2, kf3 = st.columns([3.5, 1.5, 1])
-    with kf1: k_busca = st.text_input("Buscar na lista", placeholder="🔍  Buscar na sua lista...", label_visibility="collapsed")
-    with kf2: k_rede = st.selectbox("Rede Kanban", ["Todas as redes", "Solana", "Ethereum", "Ronin", "Polygon", "Immutable X", "Outra"], label_visibility="collapsed")
-    with kf3: modo_vis = st.selectbox("Visão", ["⊞ Quadro", "☰ Lista"], label_visibility="collapsed")
-
-    if k_busca:
-        jogos_ag = [j for j in jogos_ag if k_busca.lower() in j['nome'].lower()]
-        jogos_lanc = [j for j in jogos_lanc if k_busca.lower() in j['nome'].lower()]
-    if k_rede != "Todas as redes":
-        jogos_ag = [j for j in jogos_ag if k_rede.lower() in (j.get('rede') or '').lower()]
-        jogos_lanc = [j for j in jogos_lanc if k_rede.lower() in (j.get('rede') or '').lower()]
-
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    def desenhar_card_kanban(jogo, lancado=False):
-        score = jogo.get('alpha_score', 50)
-        cor_score = "score-green" if score >= 80 else "score-yellow" if score >= 60 else "score-red"
-        icone_rede = obter_icone_rede(jogo.get('rede', 'Outra'))
-        
-        dt_txt = jogo.get('data_lancamento') or ("Lançado recentemente" if lancado else "Lançamento a confirmar")
-        if lancado and jogo.get('data_lancamento'): dt_txt = f"Lançado em {jogo['data_lancamento']}"
-        
-        nota_txt = jogo.get('anotacoes') or ("Revisar novidades do projeto" if lancado else "Adicionar uma anotação...")
-        link_acao = f"<a href='{jogo.get('site_url', '#')}' target='_blank' class='k-action-link'>{'Acessar jogo ↗' if lancado else 'Ver projeto →'}</a>"
-        
-        k_html = f"""<div class="k-card"><div class="card-top"><div style="display:flex; gap:10px; align-items:center;"><span style="color:#474D57; font-size:16px;">⠿</span><div><p class="game-name" style="font-size:16px; margin-bottom:4px;">{jogo['nome']}</p><div class="net-pill">{icone_rede}</div></div></div><div class="score-box {cor_score}" style="font-size:14px; padding:4px 8px;">{score}</div></div><div class="k-info-line"><span>📅 {dt_txt}</span><span>{'' if lancado else '➕ Definir data'}</span></div><div class="k-note-line"><span>📝 {nota_txt[:38]}</span>{link_acao}</div></div>"""
-        st.markdown(k_html, unsafe_allow_html=True)
-        
-        c_act1, c_act2 = st.columns([4, 1])
-        with c_act1:
-            if not lancado:
-                if st.button("🚀 Marcar como Lançado", key=f"to_l_{jogo['id']}", use_container_width=True):
-                    atualizar_status_kanban(jogo['id'], 'Lançado')
-                    st.rerun()
-            else:
-                if st.button("⏳ Voltar para Aguardando", key=f"to_a_{jogo['id']}", use_container_width=True):
-                    atualizar_status_kanban(jogo['id'], 'Aguardando Lançamento')
-                    st.rerun()
-        with c_act2:
-            with st.popover("•••", use_container_width=True):
-                st.markdown(f"**Editar {jogo['nome']}**")
-                nova_data = st.date_input("Data de Lançamento", key=f"dt_{jogo['id']}")
-                nova_nota = st.text_input("Anotação", value=jogo.get('anotacoes') or "", key=f"nt_{jogo['id']}")
-                if st.button("💾 Salvar", key=f"sv_{jogo['id']}", type="primary", use_container_width=True):
-                    meses_pt = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"]
-                    dt_formatada = f"{nova_data.day} {meses_pt[nova_data.month-1]} {nova_data.year}"
-                    salvar_detalhes_kanban(jogo['id'], dt_formatada, nova_nota)
-                    st.rerun()
-                st.divider()
-                if st.button("❌ Remover do Kanban", key=f"rm_{jogo['id']}", use_container_width=True):
-                    atualizar_status_kanban(jogo['id'], 'Radar')
-                    st.rerun()
-        st.markdown("<div style='margin-bottom: 10px;'></div>", unsafe_allow_html=True)
-
-    col_esq, col_dir = st.columns(2)
-    with col_esq:
-        st.markdown(f"<div class='kanban-header'><p class='kanban-header-title' style='color:#FCD535;'>🟡 Aguardando lançamento <span class='count-pill'>{len(jogos_ag)}</span></p></div>", unsafe_allow_html=True)
-        for j in jogos_ag: desenhar_card_kanban(j, lancado=False)
-
-    with col_dir:
-        st.markdown(f"<div class='kanban-header'><p class='kanban-header-title' style='color:#00E6A8;'>🟢 Projetos lançados <span class='count-pill'>{len(jogos_lanc)}</span></p></div>", unsafe_allow_html=True)
-        for j in jogos_lanc: desenhar_card_kanban(j, lancado=True)
