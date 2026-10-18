@@ -68,11 +68,19 @@ def buscar_jogos():
     return response.data
 
 def apagar_jogo(jogo_id):
-    supabase.table('crypto_games').delete().eq('id', jogo_id).execute()
+    try:
+        supabase.table('crypto_games').delete().eq('id', jogo_id).execute()
+    except Exception as e:
+        st.error(f"Erro de permissão ao apagar: {e}")
 
 def limpar_dashboard_inteiro():
-    # O PostgREST precisa de uma condição para deletar múltiplos dados. "neq" num valor irreal apaga tudo.
-    supabase.table('crypto_games').delete().neq('nome', 'VALOR_IMPOSSIVEL_DE_EXISTIR').execute()
+    try:
+        # Puxa todos os IDs existentes e destrói um a um (método à prova de balas)
+        jogos = buscar_jogos()
+        for j in jogos:
+            supabase.table('crypto_games').delete().eq('id', j['id']).execute()
+    except Exception as e:
+        st.error(f"Erro ao limpar: {e}")
 
 def inserir_projeto_manual(nome, rede, site_url, twitter_url):
     score = 50
@@ -97,9 +105,8 @@ def inserir_projeto_manual(nome, rede, site_url, twitter_url):
 def buscar_projetos_reais():
     with st.spinner('A caçar todos os links underground e anúncios...'):
         try:
-            # Puxa os sites que já estão no dashboard para não os duplicar
             existentes_db = supabase.table('crypto_games').select("site_url").execute()
-            sites_existentes = [x['site_url'] for x in existentes_db.data]
+            sites_existentes = [x['site_url'] for x in existentes_db.data if x.get('site_url')]
             
             url = "https://www.reddit.com/search.json"
             params = {
@@ -130,7 +137,6 @@ def buscar_projetos_reais():
                     elif any(ext in link for ext in [".fun", ".gg", ".io", ".net", ".com", "linktr.ee"]) and "reddit" not in link:
                         site_url = link
                 
-                # Se não tem site, ou se já está no dashboard, descarta.
                 if site_url == "#" or site_url in sites_existentes:
                     continue
                     
@@ -162,9 +168,9 @@ def buscar_projetos_reais():
                 novos_projetos_inseridos += 1
                 
             if novos_projetos_inseridos > 0:
-                st.success(f'📡 Varredura sem limites concluída! {novos_projetos_inseridos} projetos novos encontrados.')
+                st.success(f'📡 Varredura concluída! {novos_projetos_inseridos} projetos novos encontrados.')
             else:
-                st.warning('Nenhum link novo encontrado. Tudo o que está a ser falado já está no seu radar!')
+                st.warning('Nenhum link novo encontrado nesta varredura.')
                 
         except Exception as e:
             st.error(f"Falha na varredura: {e}")
@@ -184,9 +190,9 @@ with st.sidebar:
     
     with st.expander("➕ Adicionar Projeto Manualmente"):
         with st.form("form_manual"):
-            m_nome = st.text_input("Nome do Jogo (Ex: Solana Demons)")
+            m_nome = st.text_input("Nome do Jogo")
             m_rede = st.selectbox("Rede", ["Solana", "Ronin", "Immutable X", "Polygon", "Avalanche", "Outra"])
-            m_site = st.text_input("Link do Site (.fun, .gg, etc)")
+            m_site = st.text_input("Link do Site")
             m_twitter = st.text_input("Link do Twitter")
             submit_manual = st.form_submit_button("Salvar no Radar")
             if submit_manual and m_nome:
@@ -194,14 +200,10 @@ with st.sidebar:
                 st.rerun()
 
     st.divider()
-    
-    # Filtro apenas por rede agora
     st.subheader("Filtros")
     filtro_rede = st.selectbox("Filtrar por Rede", ["Todas", "Solana", "Ronin", "Immutable X", "Polygon", "Avalanche", "Outra"])
 
     st.divider()
-    
-    # O botão de destruição em massa
     if st.button("🚨 Limpar Todo o Dashboard", type="primary"):
         limpar_dashboard_inteiro()
         st.rerun()
@@ -243,7 +245,6 @@ else:
         </div>
         """
         
-        # O fluxo que coloca o card de HTML e logo abaixo o botão de apagar nativo do Streamlit
         if idx % 3 == 0:
             with col1: 
                 st.markdown(card_html, unsafe_allow_html=True)
