@@ -111,19 +111,20 @@ def inserir_projeto_manual(nome, rede, site_url, twitter_url):
 def extrair_nome_provavel(titulo, site_url):
     """Tenta adivinhar o nome do projeto pelo domínio do site ou limpa o título."""
     if site_url != "#":
-        dominio = re.sub(r'https?://(www\.)?', '', site_url).split('/')[0]
+        # Remove parâmetros como ?ref= para extrair o domínio limpo
+        url_limpa = site_url.split('?')[0]
+        dominio = re.sub(r'https?://(www\.)?', '', url_limpa).split('/')[0]
         nome_dominio = dominio.split('.')[0]
         
-        # Lista negra: Ignora redes sociais e corretoras genéricas
-        blacklist = ['discord', 'twitter', 'facebook', 'youtube', 'gate', 'linktr', 'medium', 'coinmarketcap', 'coingecko', 'binance', 'bybit']
+        blacklist = ['discord', 'twitter', 'facebook', 'youtube', 'gate', 'linktr', 'medium', 'coinmarketcap', 'coingecko', 'binance', 'bybit', 't', 'telegram']
         
-        if len(nome_dominio) > 3 and nome_dominio.lower() not in blacklist:
+        if len(nome_dominio) > 2 and nome_dominio.lower() not in blacklist:
             return nome_dominio.capitalize()
             
     # Fallback: limpar o título do vídeo
     titulo_limpo = re.sub(r'[^a-zA-Z0-9\s]', '', titulo)
     palavras = titulo_limpo.split()
-    stop_words = ['new', 'crypto', 'game', 'play', 'to', 'earn', 'free', 'solana', 'airdrop', 'the', 'best', 'review', 'tutorial', 'top', 'upcoming']
+    stop_words = ['new', 'crypto', 'game', 'play', 'to', 'earn', 'free', 'solana', 'airdrop', 'the', 'best', 'review', 'tutorial', 'top', 'upcoming', 'update', 'everyday', 'setiap', 'hari']
     palavras_chave = [p for p in palavras if p.lower() not in stop_words]
     
     if palavras_chave:
@@ -160,180 +161,3 @@ def buscar_projetos_reais():
             if search_resp.status_code != 200:
                 st.error(f"Erro na API do YouTube: {search_resp.json().get('error', {}).get('message', 'Acesso Negado')}")
                 return
-                
-            dados_busca = search_resp.json()
-            video_ids = [item['id']['videoId'] for item in dados_busca.get('items', [])]
-            
-            if not video_ids:
-                st.toast('Nenhum vídeo relevante publicado nas últimas 48h.', icon='⚠️')
-                return
-                
-            videos_url = "https://www.googleapis.com/youtube/v3/videos"
-            videos_params = {
-                "part": "snippet,statistics",
-                "id": ",".join(video_ids),
-                "key": youtube_key
-            }
-            videos_resp = requests.get(videos_url, params=videos_params).json()
-            
-            novos_projetos_inseridos = 0
-            
-            for item in videos_resp.get('items', []):
-                video_id = item.get('id')
-                video_link = f"https://www.youtube.com/watch?v={video_id}"
-                
-                if video_link in videos_existentes:
-                    continue
-                    
-                snippet = item.get('snippet', {})
-                estatisticas = item.get('statistics', {})
-                
-                titulo = snippet.get('title', '')
-                descricao = snippet.get('description', '')
-                data_pub_raw = snippet.get('publishedAt', '')
-                visualizacoes = estatisticas.get('viewCount', '0')
-                
-                try:
-                    data_pub = datetime.strptime(data_pub_raw, "%Y-%m-%dT%H:%M:%SZ").strftime("%d/%m/%Y")
-                except:
-                    data_pub = "Recente"
-                    
-                conteudo_total = (titulo + " " + descricao).lower()
-                
-                urls_encontradas = re.findall(r'https?://[^\s)\]"]+', descricao)
-                site_url = "#"
-                twitter_url = "#"
-                
-                for link in urls_encontradas:
-                    if "twitter.com" in link or "x.com" in link:
-                        twitter_url = link
-                    elif any(ext in link for ext in [".fun", ".gg", ".io", ".net", ".com", "linktr.ee"]) and "youtube" not in link and "youtu.be" not in link:
-                        site_url = link
-                
-                if site_url == "#" or site_url in sites_existentes:
-                    continue
-                
-                nome_projeto = extrair_nome_provavel(titulo, site_url)
-                
-                rede = "Ethereum / Outra"
-                if "solana" in conteudo_total or "sol" in conteudo_total: rede = "Solana"
-                elif "ronin" in conteudo_total: rede = "Ronin"
-                elif "immutable" in conteudo_total or "imx" in conteudo_total: rede = "Immutable X"
-                elif "polygon" in conteudo_total: rede = "Polygon"
-                
-                score = 65 
-                if "whitelist" in conteudo_total: score += 10
-                if "airdrop" in conteudo_total: score += 10
-                if twitter_url != "#": score += 15
-                
-                if int(visualizacoes) > 1000: score += 10
-                
-                proj = {
-                    "nome": nome_projeto[:25],
-                    "ticker": "TBA",
-                    "rede": rede,
-                    "estagio": "Underground / YouTube",
-                    "investidores": "Prospecção YouTube",
-                    "twitter_url": twitter_url,
-                    "site_url": site_url,
-                    "alpha_score": min(score, 100),
-                    "data_publicacao": data_pub,
-                    "visualizacoes": visualizacoes,
-                    "video_url": video_link
-                }
-                
-                supabase.table('crypto_games').insert(proj).execute()
-                sites_existentes.append(site_url) 
-                videos_existentes.append(video_link)
-                novos_projetos_inseridos += 1
-                
-            if novos_projetos_inseridos > 0:
-                st.toast(f'Varredura concluída! {novos_projetos_inseridos} projetos novos extraídos do YouTube.', icon='📡')
-            else:
-                st.toast('Vídeos analisados, mas nenhum link de site válido foi encontrado nas descrições.', icon='⚠️')
-                
-        except Exception as e:
-            st.error(f"Erro inesperado no sistema de busca: {e}")
-
-# --- Interface do Usuário ---
-st.title("🎯 Crypto Sniper Dashboard")
-
-# Barra Lateral (Menu)
-with st.sidebar:
-    st.header("⚙️ Controles e Caça")
-    
-    if st.button("📡 Buscar Projetos Underground"):
-        buscar_projetos_reais()
-        
-    st.divider()
-    
-    with st.expander("➕ Adicionar Projeto Manualmente"):
-        with st.form("form_manual"):
-            m_nome = st.text_input("Nome do Jogo")
-            m_rede = st.selectbox("Rede", ["Solana", "Ronin", "Immutable X", "Polygon", "Avalanche", "Outra"])
-            m_site = st.text_input("Link do Site")
-            m_twitter = st.text_input("Link do Twitter")
-            submit_manual = st.form_submit_button("Salvar no Radar")
-            if submit_manual and m_nome:
-                inserir_projeto_manual(m_nome, m_rede, m_site, m_twitter)
-
-    st.divider()
-    st.subheader("Filtros")
-    filtro_rede = st.selectbox("Filtrar por Rede", ["Todas", "Solana", "Ronin", "Immutable X", "Polygon", "Avalanche", "Outra"])
-
-    st.divider()
-    if st.button("🚨 Limpar Todo o Dashboard", type="primary"):
-        limpar_dashboard_inteiro()
-
-# Renderização dos Dados
-jogos = buscar_jogos()
-
-if not jogos:
-    st.info("O radar está limpo. Busque novos projetos ou insira links manualmente.")
-else:
-    col1, col2, col3 = st.columns(3)
-    
-    for idx, jogo in enumerate(jogos):
-        if filtro_rede != "Todas" and jogo['rede'] != filtro_rede:
-            continue
-            
-        score = jogo['alpha_score']
-        badge_class = "score-badge"
-        if score < 60: badge_class += " low"
-        elif score < 85: badge_class += " medium"
-        
-        data_pub = jogo.get('data_publicacao', 'N/A')
-        views = jogo.get('visualizacoes', 'N/A')
-        v_url = jogo.get('video_url', '#')
-        
-        # O HTML abaixo agora não tem linhas em branco para evitar erros no st.markdown
-        card_html = f"""
-        <div class="sniper-card">
-            <div class="card-header">
-                <p class="game-title">{jogo['nome']} <span style="font-size:14px; color:#888;">{jogo['ticker'] or ''}</span></p>
-                <div class="{badge_class}">{score}</div>
-            </div>
-            <div class="tags-row">
-                <span class="tag">⛓️ {jogo['rede']}</span>
-                <span class="tag">🕒 {jogo.get('estagio', 'N/A')}</span>
-            </div>
-            <div class="info-row">
-                <strong>📅 Publicado:</strong> {data_pub} | <strong>👁️ Views:</strong> {views}
-            </div>
-            <div class="info-row" style="margin-bottom: 15px;">
-                <strong>Origem:</strong> {jogo.get('investidores', 'N/A')}
-            </div>
-            <div class="links-row">
-                <a href="{jogo.get('twitter_url', '#')}" target="_blank">🐦 Twitter</a>
-                <a href="{jogo.get('site_url', '#')}" target="_blank">🌐 Site Oficial</a>
-                {f'<a href="{v_url}" target="_blank" class="yt-link">▶️ Fonte Original</a>' if v_url and v_url != '#' else ''}
-            </div>
-        </div>
-        """
-        
-        if idx % 3 == 0:
-            with col1: 
-                st.markdown(card_html, unsafe_allow_html=True)
-                if st.button("🗑️ Apagar", key=f"del_{jogo['id']}"):
-                    apagar_jogo(jogo['id'])
-                    st.rerun()
