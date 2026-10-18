@@ -245,8 +245,8 @@ def buscar_projetos_reais():
                 if int(visualizacoes) > 1000: score += 10
                 
                 proj = {
-                    "nome": nome_projeto[:25], "ticker": "A anunciar", "rede": rede, "estagio": "YouTube",
-                    "investidores": "YouTube", "twitter_url": twitter_url, "site_url": site_url,
+                    "nome": nome_projeto[:25], "ticker": "A anunciar", "rede": rede, "alpha_score": min(score, 100),
+                    "estagio": "YouTube", "investidores": "YouTube", "twitter_url": twitter_url, "site_url": site_url,
                     "alpha_score": min(score, 100), "data_publicacao": data_pub, "visualizacoes": visualizacoes,
                     "video_url": video_link, "kanban_status": "Radar", "anotacoes": ""
                 }
@@ -367,11 +367,13 @@ elif st.session_state.pagina == "Buscar projetos":
         else:
             if st.button("▶ Iniciar Auto Sniper", type="primary", use_container_width=True):
                 st.session_state.auto_sniper = True
+                # Dispara a busca imediatamente no primeiro clique!
+                buscar_projetos_reais()
                 st.rerun()
 
-    # --- LÓGICA DO MODO AUTO SNIPER (Automação Oculta + Javascript 15 mins) ---
+    # --- LÓGICA DO MODO AUTO SNIPER (Disparo Imediato + Timer 15 mins) ---
     if st.session_state.auto_sniper:
-        st.markdown(f"<div class='sentinel-hud'><div class='sentinel-pulse'></div><div class='sentinel-text'>AUTO SNIPER ATIVO - RASTREANDO EM: <span id='timer'>15:00</span></div></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='sentinel-hud'><div class='sentinel-pulse'></div><div class='sentinel-text'>AUTO SNIPER ATIVO - PRÓXIMA VARREDURA EM: <span id='timer'>15:00</span></div></div>", unsafe_allow_html=True)
         
         st.markdown("<div style='display: none;'>", unsafe_allow_html=True)
         if st.button("TRIGGER_AUTOSNIPER", key="trigger_btn"):
