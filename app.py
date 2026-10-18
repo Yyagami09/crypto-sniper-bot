@@ -75,10 +75,10 @@ def apagar_jogo(jogo_id):
 
 def limpar_dashboard_inteiro():
     try:
-        # Puxa todos os IDs existentes e destrói um a um (método à prova de balas)
         jogos = buscar_jogos()
         for j in jogos:
             supabase.table('crypto_games').delete().eq('id', j['id']).execute()
+        st.toast('🚨 Dashboard completamente limpo!', icon='🗑️')
     except Exception as e:
         st.error(f"Erro ao limpar: {e}")
 
@@ -99,22 +99,23 @@ def inserir_projeto_manual(nome, rede, site_url, twitter_url):
         "twitter_url": twitter_url
     }
     supabase.table('crypto_games').insert(proj).execute()
-    st.toast(f'✅ {nome} adicionado ao radar!')
+    st.toast(f'✅ {nome} adicionado ao radar!', icon='🎯')
 
-# --- Motor Alpha de Social Listening Ilimitado ---
+# --- Motor Alpha de Social Listening ---
 def buscar_projetos_reais():
-    with st.spinner('A caçar todos os links underground e anúncios...'):
+    with st.spinner('A caçar links underground e anúncios (isto pode demorar 5-10 segs)...'):
         try:
             existentes_db = supabase.table('crypto_games').select("site_url").execute()
             sites_existentes = [x['site_url'] for x in existentes_db.data if x.get('site_url')]
             
             url = "https://www.reddit.com/search.json"
+            # Funil ligeiramente mais largo para garantir captação de leads
             params = {
-                "q": '("web3 game" OR "crypto game" OR "solana game") AND ("launch date" OR "tge" OR "whitelist" OR "airdrop")',
+                "q": '("web3 game" OR "crypto game" OR "solana game") AND (launch OR tge OR airdrop OR whitelist OR token)',
                 "sort": "new",
                 "limit": 50
             }
-            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) CryptoSniperBot/3.0'}
+            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) CryptoSniperBot/3.1'}
             
             resposta = requests.get(url, params=params, headers=headers)
             dados = resposta.json()
@@ -168,12 +169,12 @@ def buscar_projetos_reais():
                 novos_projetos_inseridos += 1
                 
             if novos_projetos_inseridos > 0:
-                st.success(f'📡 Varredura concluída! {novos_projetos_inseridos} projetos novos encontrados.')
+                st.toast(f'Varredura concluída! {novos_projetos_inseridos} projetos novos encontrados.', icon='📡')
             else:
-                st.warning('Nenhum link novo encontrado nesta varredura.')
+                st.toast('Nenhum link novo encontrado. Tudo o que está a ser falado já está no seu radar!', icon='⚠️')
                 
         except Exception as e:
-            st.error(f"Falha na varredura: {e}")
+            st.error(f"Falha na API: {e}")
 
 # --- Interface do Usuário ---
 st.title("🎯 Crypto Sniper Dashboard")
@@ -184,7 +185,7 @@ with st.sidebar:
     
     if st.button("📡 Buscar Projetos Underground"):
         buscar_projetos_reais()
-        st.rerun()
+        # Sem st.rerun() aqui para evitar o reinício que escondia as notificações
         
     st.divider()
     
@@ -197,69 +198,6 @@ with st.sidebar:
             submit_manual = st.form_submit_button("Salvar no Radar")
             if submit_manual and m_nome:
                 inserir_projeto_manual(m_nome, m_rede, m_site, m_twitter)
-                st.rerun()
+                # Sem st.rerun() para mostrar o toast corretamente
 
     st.divider()
-    st.subheader("Filtros")
-    filtro_rede = st.selectbox("Filtrar por Rede", ["Todas", "Solana", "Ronin", "Immutable X", "Polygon", "Avalanche", "Outra"])
-
-    st.divider()
-    if st.button("🚨 Limpar Todo o Dashboard", type="primary"):
-        limpar_dashboard_inteiro()
-        st.rerun()
-
-# Renderização dos Dados
-jogos = buscar_jogos()
-
-if not jogos:
-    st.info("O radar está limpo. Busque novos projetos ou insira links manualmente.")
-else:
-    col1, col2, col3 = st.columns(3)
-    
-    for idx, jogo in enumerate(jogos):
-        if filtro_rede != "Todas" and jogo['rede'] != filtro_rede:
-            continue
-            
-        score = jogo['alpha_score']
-        badge_class = "score-badge"
-        if score < 60: badge_class += " low"
-        elif score < 85: badge_class += " medium"
-        
-        card_html = f"""
-        <div class="sniper-card">
-            <div class="card-header">
-                <p class="game-title">{jogo['nome']} <span style="font-size:14px; color:#888;">{jogo['ticker'] or ''}</span></p>
-                <div class="{badge_class}">{score}</div>
-            </div>
-            <div class="tags-row">
-                <span class="tag">⛓️ {jogo['rede']}</span>
-                <span class="tag">🕒 {jogo.get('estagio', 'N/A')}</span>
-            </div>
-            <div style="font-size: 13px; color: #CCC; margin-bottom: 15px;">
-                <strong>VCs:</strong> {jogo.get('investidores', 'N/A')}
-            </div>
-            <div class="links-row">
-                <a href="{jogo.get('twitter_url', '#')}" target="_blank">🐦 Twitter</a>
-                <a href="{jogo.get('site_url', '#')}" target="_blank">🌐 Site Oficial</a>
-            </div>
-        </div>
-        """
-        
-        if idx % 3 == 0:
-            with col1: 
-                st.markdown(card_html, unsafe_allow_html=True)
-                if st.button("🗑️ Apagar", key=f"del_{jogo['id']}"):
-                    apagar_jogo(jogo['id'])
-                    st.rerun()
-        elif idx % 3 == 1:
-            with col2: 
-                st.markdown(card_html, unsafe_allow_html=True)
-                if st.button("🗑️ Apagar", key=f"del_{jogo['id']}"):
-                    apagar_jogo(jogo['id'])
-                    st.rerun()
-        else:
-            with col3: 
-                st.markdown(card_html, unsafe_allow_html=True)
-                if st.button("🗑️ Apagar", key=f"del_{jogo['id']}"):
-                    apagar_jogo(jogo['id'])
-                    st.rerun()
