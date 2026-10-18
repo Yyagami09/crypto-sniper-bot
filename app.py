@@ -60,7 +60,7 @@ css = """
     font-weight: bold;
 }
 .links-row a:hover { color: #FFF; }
-.yt-link { color: #FF0000 !important; } /* Destaque para link do YouTube */
+.yt-link { color: #FF0000 !important; }
 </style>
 """
 st.markdown(css, unsafe_allow_html=True)
@@ -100,7 +100,7 @@ def inserir_projeto_manual(nome, rede, site_url, twitter_url):
         "investidores": "Mapeamento Manual",
         "site_url": site_url,
         "twitter_url": twitter_url,
-        "data_publicacao": datetime.now().strftime("%Y-%m-%d"),
+        "data_publicacao": datetime.now().strftime("%d/%m/%Y"),
         "visualizacoes": "N/A",
         "video_url": "#"
     }
@@ -111,23 +111,24 @@ def inserir_projeto_manual(nome, rede, site_url, twitter_url):
 def extrair_nome_provavel(titulo, site_url):
     """Tenta adivinhar o nome do projeto pelo domínio do site ou limpa o título."""
     if site_url != "#":
-        # Extrai ex: solanademons de https://solanademons.fun/
         dominio = re.sub(r'https?://(www\.)?', '', site_url).split('/')[0]
         nome_dominio = dominio.split('.')[0]
-        if len(nome_dominio) > 3:
+        
+        # Lista negra: Ignora redes sociais e corretoras genéricas
+        blacklist = ['discord', 'twitter', 'facebook', 'youtube', 'gate', 'linktr', 'medium', 'coinmarketcap', 'coingecko', 'binance', 'bybit']
+        
+        if len(nome_dominio) > 3 and nome_dominio.lower() not in blacklist:
             return nome_dominio.capitalize()
             
     # Fallback: limpar o título do vídeo
     titulo_limpo = re.sub(r'[^a-zA-Z0-9\s]', '', titulo)
     palavras = titulo_limpo.split()
-    # Remove palavras comuns de clickbait para tentar isolar o nome do jogo
-    stop_words = ['new', 'crypto', 'game', 'play', 'to', 'earn', 'free', 'solana', 'airdrop', 'the', 'best', 'review', 'tutorial']
+    stop_words = ['new', 'crypto', 'game', 'play', 'to', 'earn', 'free', 'solana', 'airdrop', 'the', 'best', 'review', 'tutorial', 'top', 'upcoming']
     palavras_chave = [p for p in palavras if p.lower() not in stop_words]
     
     if palavras_chave:
          return " ".join(palavras_chave[0:3]).capitalize()
-    return " ".join(palavras[0:3]).capitalize()
-
+    return " ".join(palavras[0:3]).capitalize() if palavras else "Unknown"
 
 # --- Motor Alpha de Varredura YouTube ---
 def buscar_projetos_reais():
@@ -169,7 +170,7 @@ def buscar_projetos_reais():
                 
             videos_url = "https://www.googleapis.com/youtube/v3/videos"
             videos_params = {
-                "part": "snippet,statistics", # Pede também as estatísticas agora
+                "part": "snippet,statistics",
                 "id": ",".join(video_ids),
                 "key": youtube_key
             }
@@ -181,7 +182,6 @@ def buscar_projetos_reais():
                 video_id = item.get('id')
                 video_link = f"https://www.youtube.com/watch?v={video_id}"
                 
-                # Se já varremos este vídeo antes, ignora para não duplicar esforço
                 if video_link in videos_existentes:
                     continue
                     
@@ -193,7 +193,6 @@ def buscar_projetos_reais():
                 data_pub_raw = snippet.get('publishedAt', '')
                 visualizacoes = estatisticas.get('viewCount', '0')
                 
-                # Formatar data
                 try:
                     data_pub = datetime.strptime(data_pub_raw, "%Y-%m-%dT%H:%M:%SZ").strftime("%d/%m/%Y")
                 except:
@@ -227,7 +226,6 @@ def buscar_projetos_reais():
                 if "airdrop" in conteudo_total: score += 10
                 if twitter_url != "#": score += 15
                 
-                # Bónus se o vídeo estiver a ter tração
                 if int(visualizacoes) > 1000: score += 10
                 
                 proj = {
@@ -304,11 +302,11 @@ else:
         if score < 60: badge_class += " low"
         elif score < 85: badge_class += " medium"
         
-        # Recuperando dados extras, com valores por omissão para dados antigos que não os têm
         data_pub = jogo.get('data_publicacao', 'N/A')
         views = jogo.get('visualizacoes', 'N/A')
         v_url = jogo.get('video_url', '#')
         
+        # O HTML abaixo agora não tem linhas em branco para evitar erros no st.markdown
         card_html = f"""
         <div class="sniper-card">
             <div class="card-header">
@@ -319,14 +317,12 @@ else:
                 <span class="tag">⛓️ {jogo['rede']}</span>
                 <span class="tag">🕒 {jogo.get('estagio', 'N/A')}</span>
             </div>
-            
             <div class="info-row">
                 <strong>📅 Publicado:</strong> {data_pub} | <strong>👁️ Views:</strong> {views}
             </div>
             <div class="info-row" style="margin-bottom: 15px;">
                 <strong>Origem:</strong> {jogo.get('investidores', 'N/A')}
             </div>
-            
             <div class="links-row">
                 <a href="{jogo.get('twitter_url', '#')}" target="_blank">🐦 Twitter</a>
                 <a href="{jogo.get('site_url', '#')}" target="_blank">🌐 Site Oficial</a>
@@ -337,18 +333,6 @@ else:
         
         if idx % 3 == 0:
             with col1: 
-                st.markdown(card_html, unsafe_allow_html=True)
-                if st.button("🗑️ Apagar", key=f"del_{jogo['id']}"):
-                    apagar_jogo(jogo['id'])
-                    st.rerun()
-        elif idx % 3 == 1:
-            with col2: 
-                st.markdown(card_html, unsafe_allow_html=True)
-                if st.button("🗑️ Apagar", key=f"del_{jogo['id']}"):
-                    apagar_jogo(jogo['id'])
-                    st.rerun()
-        else:
-            with col3: 
                 st.markdown(card_html, unsafe_allow_html=True)
                 if st.button("🗑️ Apagar", key=f"del_{jogo['id']}"):
                     apagar_jogo(jogo['id'])
