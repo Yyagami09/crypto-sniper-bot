@@ -1,128 +1,96 @@
-            ja_na_lista = jogo.get('kanban_status') in ['Aguardando Lançamento', 'Lançado']
-            
-            with b_add:
-                if ja_na_lista:
-                    if st.button("✓  Adicionado", key=f"added_{jogo['id']}", use_container_width=True):
-                        atualizar_status_kanban(jogo['id'], 'Radar')
-                        st.rerun()
-                else:
-                    if st.button("＋  Adicionar à lista", key=f"add_{jogo['id']}", use_container_width=True):
-                        atualizar_status_kanban(jogo['id'], 'Aguardando Lançamento')
-                        st.rerun()
-            with b_opt:
-                with st.popover("•••", use_container_width=True):
-                    st.markdown(f"**{jogo['nome']}**")
-                    if st.button("🗑️ Deletar projeto", key=f"del_{jogo['id']}", use_container_width=True):
-                        apagar_jogo(jogo['id'])
-                        st.rerun()
-            st.markdown("<div style='margin-bottom: 12px;'></div>", unsafe_allow_html=True)
+import streamlit as st
+from supabase import create_client, Client
+import requests
+import re
+from datetime import datetime, timedelta, timezone
 
-# ==========================================
-# TELA 2: GAME SNIPER -> KANBAN
-# ==========================================
-elif st.session_state.pagina == "Kanban":
-    col_k1, col_k2, col_k3 = st.columns([3.2, 1, 1])
-    with col_k1:
-        st.markdown("<div class='breadcrumb'>🎮 Game Sniper / <span>Kanban</span></div>", unsafe_allow_html=True)
-        st.markdown("<h1 class='main-title'>Seu radar de projetos</h1><p class='sub-title'>Organize os jogos que você quer acompanhar.</p>", unsafe_allow_html=True)
-    with col_k2:
-        st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("🧭  Explorar projetos", use_container_width=True):
-            st.session_state.pagina = "Buscar projetos"
-            st.rerun()
-    with col_k3:
-        st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("＋  Adicionar projeto", type="primary", use_container_width=True):
-            st.session_state.mostrar_form_manual = not st.session_state.mostrar_form_manual
+# --- Configuração da Página ---
+st.set_page_config(page_title="Crypto Sniper", layout="wide", initial_sidebar_state="expanded")
 
-    if st.session_state.mostrar_form_manual:
-        with st.container():
-            st.markdown("<div style='background:#12161C; border:1px solid #00E6A8; border-radius:10px; padding:15px; margin-bottom:20px;'>", unsafe_allow_html=True)
-            with st.form("form_novo_kanban"):
-                st.subheader("➕ Novo Projeto no Radar")
-                c1, c2 = st.columns(2)
-                m_nome = c1.text_input("Nome do Jogo")
-                m_rede = c2.selectbox("Rede", ["Solana", "Ethereum", "Ronin", "Immutable X", "Polygon", "Avalanche", "Outra"])
-                c3, c4, c5 = st.columns(3)
-                m_site = c3.text_input("Link do Site Oficial")
-                m_tw = c4.text_input("Link do X / Twitter")
-                m_etapa = c5.selectbox("Etapa Inicial", ["Aguardando Lançamento", "Lançado"])
-                
-                if st.form_submit_button("Salvar Projeto", type="primary"):
-                    if m_nome:
-                        inserir_projeto_manual(m_nome, m_rede, m_site, m_tw, m_etapa)
-                        st.session_state.mostrar_form_manual = False
-                        st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
+# --- Conexão Segura com Supabase ---
+@st.cache_resource
+def init_connection():
+    url = st.secrets["SUPABASE_URL"]
+    key = st.secrets["SUPABASE_KEY"]
+    return create_client(url, key)
 
-    jogos_ag = [j for j in todos_jogos if j.get('kanban_status') == 'Aguardando Lançamento']
-    jogos_lanc = [j for j in todos_jogos if j.get('kanban_status') == 'Lançado']
-    total_acomp = len(jogos_ag) + len(jogos_lanc)
+supabase: Client = init_connection()
 
-    m1, m2, m3 = st.columns(3)
-    with m1: st.markdown(f"<div class='kpi-card'><div class='kpi-icon'>🔖</div><div><p class='kpi-label'>Acompanhando</p><p class='kpi-val'>{total_acomp}</p></div></div>", unsafe_allow_html=True)
-    with m2: st.markdown(f"<div class='kpi-card'><div class='kpi-icon'>⏳</div><div><p class='kpi-label'>Aguardando lançamento</p><p class='kpi-val'>{len(jogos_ag)}</p></div></div>", unsafe_allow_html=True)
-    with m3: st.markdown(f"<div class='kpi-card'><div class='kpi-icon'>🚀</div><div><p class='kpi-label'>Lançados</p><p class='kpi-val'>{len(jogos_lanc)}</p></div></div>", unsafe_allow_html=True)
+# --- Controle de Estado de Navegação ---
+if 'pagina' not in st.session_state:
+    st.session_state.pagina = "Buscar projetos"
+if 'mostrar_form_manual' not in st.session_state:
+    st.session_state.mostrar_form_manual = False
 
-    kf1, kf2, kf3 = st.columns([3.5, 1.5, 1])
-    with kf1: k_busca = st.text_input("Buscar na lista", placeholder="🔍  Buscar na sua lista...", label_visibility="collapsed")
-    with kf2: k_rede = st.selectbox("Rede Kanban", ["Todas as redes", "Solana", "Ethereum", "Ronin", "Polygon", "Immutable X", "Outra"], label_visibility="collapsed")
-    with kf3: modo_vis = st.selectbox("Visão", ["⊞ Quadro", "☰ Lista"], label_visibility="collapsed")
+# --- Estilização CSS (Tema Dark & Teal SaaS + Menu Lateral Customizado) ---
+css = """
+<style>
+/* Fundo Geral e Sidebar */
+.stApp { background-color: #0B0E11; color: #EAECEF; }
+[data-testid="stSidebar"] { background-color: #080A0C; border-right: 1px solid #14181F; }
+.block-container { padding-top: 1.8rem !important; max-width: 96% !important; }
 
-    if k_busca:
-        jogos_ag = [j for j in jogos_ag if k_busca.lower() in j['nome'].lower()]
-        jogos_lanc = [j for j in jogos_lanc if k_busca.lower() in j['nome'].lower()]
-    if k_rede != "Todas as redes":
-        jogos_ag = [j for j in jogos_ag if k_rede.lower() in (j.get('rede') or '').lower()]
-        jogos_lanc = [j for j in jogos_lanc if k_rede.lower() in (j.get('rede') or '').lower()]
+/* =========================================================
+   ESTILOS GERAIS DOS CARDS E BOTÕES
+   ========================================================= */
+.breadcrumb { font-size: 13px; color: #848E9C; margin-bottom: 15px; font-weight: 500; }
+.breadcrumb span { color: #00E6A8; font-weight: 600; }
+.main-title { font-size: 32px; font-weight: 800; color: #FFFFFF; margin: 0 0 4px 0; letter-spacing: -0.5px; }
+.sub-title { font-size: 15px; color: #848E9C; margin-bottom: 24px; }
 
-    st.markdown("<br>", unsafe_allow_html=True)
+.kpi-card { background-color: #12161C; border: 1px solid #1E242D; border-radius: 12px; padding: 18px 20px; display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+.kpi-icon { width: 46px; height: 46px; border-radius: 10px; background-color: #192028; display: flex; align-items: center; justify-content: center; font-size: 20px; border: 1px solid #252E3A; }
+.kpi-label { font-size: 13px; color: #848E9C; margin: 0 0 2px 0; }
+.kpi-val { font-size: 26px; font-weight: 800; color: #FFFFFF; margin: 0; line-height: 1.1; }
 
-    def desenhar_card_kanban(jogo, lancado=False):
-        score = jogo.get('alpha_score', 50)
-        cor_score = "score-green" if score >= 80 else "score-yellow" if score >= 60 else "score-red"
-        icone_rede = obter_icone_rede(jogo.get('rede', 'Outra'))
-        
-        dt_txt = jogo.get('data_lancamento') or ("Lançado recentemente" if lancado else "Lançamento a confirmar")
-        if lancado and jogo.get('data_lancamento'): dt_txt = f"Lançado em {jogo['data_lancamento']}"
-        
-        nota_txt = jogo.get('anotacoes') or ("Revisar novidades do projeto" if lancado else "Adicionar uma anotação...")
-        link_acao = f"<a href='{jogo.get('site_url', '#')}' target='_blank' class='k-action-link'>{'Acessar jogo ↗' if lancado else 'Ver projeto →'}</a>"
-        
-        k_html = f"""<div class="k-card"><div class="card-top"><div style="display:flex; gap:10px; align-items:center;"><span style="color:#474D57; font-size:16px;">⠿</span><div><p class="game-name" style="font-size:16px; margin-bottom:4px;">{jogo['nome']}</p><div class="net-pill">{icone_rede}</div></div></div><div class="score-box {cor_score}" style="font-size:14px; padding:4px 8px;">{score}</div></div><div class="k-info-line"><span>📅 {dt_txt}</span><span>{'' if lancado else '➕ Definir data'}</span></div><div class="k-note-line"><span>📝 {nota_txt[:38]}</span>{link_acao}</div></div>"""
-        st.markdown(k_html, unsafe_allow_html=True)
-        
-        c_act1, c_act2 = st.columns([4, 1])
-        with c_act1:
-            if not lancado:
-                if st.button("🚀 Marcar como Lançado", key=f"to_l_{jogo['id']}", use_container_width=True):
-                    atualizar_status_kanban(jogo['id'], 'Lançado')
-                    st.rerun()
-            else:
-                if st.button("⏳ Voltar para Aguardando", key=f"to_a_{jogo['id']}", use_container_width=True):
-                    atualizar_status_kanban(jogo['id'], 'Aguardando Lançamento')
-                    st.rerun()
-        with c_act2:
-            with st.popover("•••", use_container_width=True):
-                st.markdown(f"**Editar {jogo['nome']}**")
-                nova_data = st.date_input("Data de Lançamento", key=f"dt_{jogo['id']}")
-                nova_nota = st.text_input("Anotação", value=jogo.get('anotacoes') or "", key=f"nt_{jogo['id']}")
-                if st.button("💾 Salvar", key=f"sv_{jogo['id']}", type="primary", use_container_width=True):
-                    meses_pt = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"]
-                    dt_formatada = f"{nova_data.day} {meses_pt[nova_data.month-1]} {nova_data.year}"
-                    salvar_detalhes_kanban(jogo['id'], dt_formatada, nova_nota)
-                    st.rerun()
-                st.divider()
-                if st.button("❌ Remover do Kanban", key=f"rm_{jogo['id']}", use_container_width=True):
-                    atualizar_status_kanban(jogo['id'], 'Radar')
-                    st.rerun()
-        st.markdown("<div style='margin-bottom: 10px;'></div>", unsafe_allow_html=True)
+.sniper-card { background-color: #12161C; border: 1px solid #1E242D; border-radius: 12px; padding: 18px; margin-bottom: 8px; transition: border-color 0.2s; }
+.sniper-card:hover { border-color: #2B3645; }
+.card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+.game-name { font-size: 18px; font-weight: 700; color: #FFFFFF; margin: 0 0 6px 0; }
+.badge-tba { background-color: #1C222B; color: #848E9C; font-size: 11px; padding: 3px 8px; border-radius: 5px; font-weight: 600; display: inline-block; margin-bottom: 8px; }
+.net-pill { background-color: #191E26; border: 1px solid #262E3B; color: #EAECEF; font-size: 12px; padding: 4px 10px; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; font-weight: 500; }
 
-    col_esq, col_dir = st.columns(2)
-    with col_esq:
-        st.markdown(f"<div class='kanban-header'><p class='kanban-header-title' style='color:#FCD535;'>🟡 Aguardando lançamento <span class='count-pill'>{len(jogos_ag)}</span></p></div>", unsafe_allow_html=True)
-        for j in jogos_ag: desenhar_card_kanban(j, lancado=False)
+.score-wrapper { display: flex; align-items: baseline; gap: 4px; }
+.score-box { font-weight: 800; font-size: 16px; padding: 5px 10px; border-radius: 7px; color: #000; }
+.score-green { background-color: #00E6A8; box-shadow: 0 0 12px rgba(0, 230, 168, 0.25); }
+.score-yellow { background-color: #FCD535; box-shadow: 0 0 12px rgba(252, 213, 53, 0.25); }
+.score-red { background-color: #F6465D; color: #FFF; }
+.score-max { font-size: 12px; color: #5E6673; font-weight: 600; }
 
-    with col_dir:
-        st.markdown(f"<div class='kanban-header'><p class='kanban-header-title' style='color:#00E6A8;'>🟢 Projetos lançados <span class='count-pill'>{len(jogos_lanc)}</span></p></div>", unsafe_allow_html=True)
-        for j in jogos_lanc: desenhar_card_kanban(j, lancado=True)
+.progress-bg { width: 100%; height: 5px; background-color: #1E242D; border-radius: 3px; margin: 14px 0; overflow: hidden; }
+.progress-fill-green { height: 100%; background-color: #00E6A8; border-radius: 3px; }
+.progress-fill-yellow { height: 100%; background-color: #FCD535; border-radius: 3px; }
+.progress-fill-red { height: 100%; background-color: #F6465D; border-radius: 3px; }
+
+.meta-line { font-size: 12px; color: #848E9C; margin-bottom: 12px; display: flex; gap: 12px; align-items: center; }
+.links-line { font-size: 13px; padding-top: 12px; border-top: 1px solid #1E242D; display: flex; gap: 14px; align-items: center; }
+.links-line a { color: #848E9C; text-decoration: none; font-weight: 500; transition: color 0.2s; }
+.links-line a:hover { color: #00E6A8; }
+
+.kanban-header { background-color: #12161C; border: 1px solid #1E242D; border-radius: 10px; padding: 12px 16px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
+.kanban-header-title { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; margin: 0; }
+.count-pill { background-color: #1E242D; color: #848E9C; font-size: 12px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+
+.k-card { background-color: #12161C; border: 1px solid #1E242D; border-radius: 10px; padding: 16px; margin-bottom: 6px; }
+.k-info-line { font-size: 12px; color: #848E9C; margin-top: 10px; display: flex; justify-content: space-between; align-items: center; }
+.k-note-line { font-size: 12px; color: #6C7582; margin-top: 6px; display: flex; justify-content: space-between; align-items: center; font-style: italic; }
+.k-action-link { color: #00E6A8 !important; text-decoration: none; font-weight: 600; font-size: 12px; }
+
+div.stButton > button { background-color: #161B22; color: #EAECEF; border: 1px solid #262E3B; border-radius: 8px; font-weight: 600; font-size: 13px; padding: 0.45rem 1rem; transition: all 0.2s; }
+div.stButton > button:hover { border-color: #00E6A8; color: #00E6A8; background-color: #121D1B; }
+div.stButton > button[kind="primary"] { background-color: #00E6A8 !important; color: #06110E !important; border: none !important; font-weight: 700 !important; }
+div.stButton > button[kind="primary"]:hover { background-color: #00C892 !important; box-shadow: 0 0 15px rgba(0, 230, 168, 0.35); }
+[data-testid="stPopover"] > button { background: transparent !important; border: 1px solid #1E242D !important; color: #848E9C !important; padding: 2px 10px !important; min-height: 32px !important; }
+[data-testid="stPopover"] > button:hover { border-color: #00E6A8 !important; color: #FFF !important; }
+</style>
+"""
+st.markdown(css, unsafe_allow_html=True)
+
+# --- Ícones Oficiais das Redes (HTML) ---
+def obter_icone_rede(rede):
+    r = (rede or "").lower()
+    if "solana" in r:
+        return '<img src="https://cryptologos.cc/logos/solana-sol-logo.png?v=029" width="14" style="vertical-align:middle;"> Solana'
+    elif "ethereum" in r:
+        return '<img src="https://cryptologos.cc/logos/ethereum-eth-logo.png?v=029" width="14" style="vertical-align:middle;"> Ethereum'
+    elif "polygon" in r:
