@@ -109,9 +109,7 @@ def inserir_projeto_manual(nome, rede, site_url, twitter_url):
 
 # --- Função Auxiliar: Limpeza de Nome ---
 def extrair_nome_provavel(titulo, site_url):
-    """Tenta adivinhar o nome do projeto pelo domínio do site ou limpa o título."""
     if site_url != "#":
-        # Remove parâmetros como ?ref= para extrair o domínio limpo
         url_limpa = site_url.split('?')[0]
         dominio = re.sub(r'https?://(www\.)?', '', url_limpa).split('/')[0]
         nome_dominio = dominio.split('.')[0]
@@ -121,10 +119,10 @@ def extrair_nome_provavel(titulo, site_url):
         if len(nome_dominio) > 2 and nome_dominio.lower() not in blacklist:
             return nome_dominio.capitalize()
             
-    # Fallback: limpar o título do vídeo
     titulo_limpo = re.sub(r'[^a-zA-Z0-9\s]', '', titulo)
     palavras = titulo_limpo.split()
-    stop_words = ['new', 'crypto', 'game', 'play', 'to', 'earn', 'free', 'solana', 'airdrop', 'the', 'best', 'review', 'tutorial', 'top', 'upcoming', 'update', 'everyday', 'setiap', 'hari']
+    # Adicionadas palavras-chave do mercado brasileiro de cripto games
+    stop_words = ['new', 'crypto', 'game', 'play', 'to', 'earn', 'free', 'solana', 'airdrop', 'the', 'best', 'review', 'tutorial', 'top', 'upcoming', 'update', 'everyday', 'setiap', 'hari', 'novo', 'jogo', 'nft', 'pagando', 'ganhar', 'dinheiro', 'gratis', 'grátis', 'lançamento', 'analise', 'análise', 'como', 'funciona', 'vale', 'a', 'pena']
     palavras_chave = [p for p in palavras if p.lower() not in stop_words]
     
     if palavras_chave:
@@ -137,7 +135,7 @@ def buscar_projetos_reais():
         st.error("⚠️ Chave do YouTube não encontrada nos Secrets do Streamlit.")
         return
 
-    with st.spinner('A analisar vídeos do YouTube das últimas 48 horas...'):
+    with st.spinner('A analisar vídeos do YouTube das últimas 48 horas (Gringos e BRs)...'):
         try:
             youtube_key = st.secrets["YOUTUBE_API_KEY"]
             existentes_db = supabase.table('crypto_games').select("site_url", "video_url").execute()
@@ -147,13 +145,14 @@ def buscar_projetos_reais():
             data_limite = (datetime.now(timezone.utc) - timedelta(days=2)).isoformat("T", "seconds").replace("+00:00", "Z")
             
             search_url = "https://www.googleapis.com/youtube/v3/search"
+            # Query expandida para captar o mercado brasileiro também
             search_params = {
                 "part": "snippet",
-                "q": '("new crypto game" OR "solana game" OR "play to earn") (launch OR gameplay OR airdrop)',
+                "q": '("new crypto game" OR "solana game" OR "play to earn" OR "novo jogo nft" OR "jogo nft") (launch OR gameplay OR airdrop OR lançamento)',
                 "type": "video",
                 "order": "date",
                 "publishedAfter": data_limite,
-                "maxResults": 20,
+                "maxResults": 30, # Aumentei um pouco o limite para caber os dois idiomas
                 "key": youtube_key
             }
             search_resp = requests.get(search_url, params=search_params)
@@ -205,18 +204,15 @@ def buscar_projetos_reais():
                 site_url = "#"
                 twitter_url = "#"
                 
-                # Sistema aprimorado de hierarquia de links
                 for link in urls_encontradas:
                     l_lower = link.lower()
                     if "twitter.com" in l_lower or "x.com" in l_lower:
                         twitter_url = link
-                    # Ignora redes sociais para a vaga de Site Oficial
                     elif any(bad in l_lower for bad in ['discord.com', 'discord.gg', 't.me', 'telegram', 'facebook', 'instagram', 'youtube', 'youtu.be', 'medium.com']):
                         continue
                     elif any(ext in l_lower for ext in [".fun", ".io", ".gg", ".xyz", ".net", ".com", "linktr.ee"]):
                         if site_url == "#":
                             site_url = link
-                        # Se já temos um site, mas encontramos uma extensão puramente Web3, trancamos essa
                         elif any(web3 in l_lower for web3 in [".fun", ".io", ".xyz"]) and not any(web3 in site_url.lower() for web3 in [".fun", ".io", ".xyz"]):
                             site_url = link
                 
@@ -232,7 +228,7 @@ def buscar_projetos_reais():
                 elif "polygon" in conteudo_total: rede = "Polygon"
                 
                 score = 65 
-                if "whitelist" in conteudo_total: score += 10
+                if "whitelist" in conteudo_total or "lista branca" in conteudo_total: score += 10
                 if "airdrop" in conteudo_total: score += 10
                 if twitter_url != "#": score += 15
                 
