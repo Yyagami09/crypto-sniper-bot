@@ -114,26 +114,29 @@ def buscar_projetos_reais():
                 "sort": "new",
                 "limit": 50
             }
-            # Disfarce perfeito de um Google Chrome comum no Windows 10
+            
+            # Passaporte oficial que contorna o erro 403 do Reddit
             headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'User-Agent': 'python:altitude-sniper-bot:v1.0 (by /u/eder_altitude)',
                 'Accept': 'application/json'
             }
             
             resposta = requests.get(url, params=params, headers=headers)
             
-            # Tratamento da barreira (Rate Limit / Bloqueio IP)
-            if resposta.status_code == 429:
-                st.error("⚠️ O Reddit bloqueou temporariamente o seu radar (Muitas requisições). Tente novamente daqui a 5 minutos.")
+            if resposta.status_code == 403:
+                st.error("⚠️ Erro 403 persistente: O Reddit continua a bloquear o servidor da nuvem. O passo seguinte será utilizar uma API especializada em cripto em vez de fóruns públicos.")
+                return
+            elif resposta.status_code == 429:
+                st.error("⚠️ Erro 429: Muitas requisições num curto espaço de tempo. Aguarde uns minutos.")
                 return
             elif resposta.status_code != 200:
-                st.error(f"⚠️ A fonte de dados recusou a ligação (Erro {resposta.status_code}).")
+                st.error(f"⚠️ A fonte recusou a ligação (Erro {resposta.status_code}).")
                 return
 
             try:
                 dados = resposta.json()
             except ValueError:
-                st.error("⚠️ O Reddit não devolveu os dados corretamente. Provável bloqueio de segurança da nuvem.")
+                st.error("⚠️ Falha ao descodificar os dados.")
                 return
             
             novos_projetos_inseridos = 0
