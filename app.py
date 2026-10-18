@@ -20,56 +20,18 @@ supabase: Client = init_connection()
 css = """
 <style>
 div.stButton > button:first-child {
-    background-color: #2B2B36;
-    color: #FFFFFF;
-    border: 1px solid #3A3A4A;
-    border-radius: 8px;
-    padding: 0.5rem 1rem;
-    transition: all 0.3s ease;
-    font-weight: 600;
+    background-color: #2B2B36; color: #FFFFFF; border: 1px solid #3A3A4A;
+    border-radius: 8px; padding: 0.5rem 1rem; transition: all 0.3s ease; font-weight: 600;
 }
-div.stButton > button:first-child:hover {
-    border-color: #00BFFF;
-    color: #00BFFF;
-    box-shadow: 0 0 12px rgba(0, 191, 255, 0.2);
-}
-div.stButton > button[kind="primary"] {
-    background-color: #3b1c1c;
-    border-color: #FF3333;
-    color: #FF3333;
-}
-div.stButton > button[kind="primary"]:hover {
-    background-color: #FF3333;
-    color: #FFFFFF;
-    box-shadow: 0 0 12px rgba(255, 51, 51, 0.4);
-}
-.sniper-card {
-    background-color: #1E1E24;
-    border-radius: 12px;
-    padding: 18px;
-    margin-bottom: 15px;
-    border: 1px solid #333;
-}
-.card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
-}
-.game-title-label {
-    background-color: #2A2A38;
-    padding: 6px 12px;
-    border-radius: 6px;
-    border-left: 4px solid #00BFFF;
-    display: flex;
-    align-items: baseline;
-}
+div.stButton > button:first-child:hover { border-color: #00BFFF; color: #00BFFF; box-shadow: 0 0 12px rgba(0, 191, 255, 0.2); }
+div.stButton > button[kind="primary"] { background-color: #3b1c1c; border-color: #FF3333; color: #FF3333; }
+div.stButton > button[kind="primary"]:hover { background-color: #FF3333; color: #FFFFFF; box-shadow: 0 0 12px rgba(255, 51, 51, 0.4); }
+.sniper-card { background-color: #1E1E24; border-radius: 12px; padding: 18px; margin-bottom: 15px; border: 1px solid #333; }
+.card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+.game-title-label { background-color: #2A2A38; padding: 6px 12px; border-radius: 6px; border-left: 4px solid #00BFFF; display: flex; align-items: baseline; }
 .game-title { font-size: 18px; font-weight: 800; color: #FFF; margin: 0; }
 .game-ticker { font-size: 12px; color: #888; margin-left: 8px; font-weight: normal; }
-.score-badge {
-    background-color: #00FF66; color: #000; font-weight: 900; font-size: 18px;
-    padding: 5px 12px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 255, 102, 0.4);
-}
+.score-badge { background-color: #00FF66; color: #000; font-weight: 900; font-size: 18px; padding: 5px 12px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 255, 102, 0.4); }
 .score-badge.medium { background-color: #FFD700; box-shadow: 0 0 10px rgba(255, 215, 0, 0.4); }
 .score-badge.low { background-color: #FF3333; color: white; box-shadow: 0 0 10px rgba(255, 51, 51, 0.4); }
 .tags-row { margin-bottom: 15px; font-size: 14px; color: #AAA;}
@@ -95,21 +57,28 @@ def apagar_jogo(jogo_id):
     try:
         supabase.table('crypto_games').delete().eq('id', jogo_id).execute()
     except Exception as e:
-        st.error(f"Erro de permissão ao deletar: {e}")
+        st.error(f"Erro ao deletar: {e}")
 
 def alterar_status_kanban(jogo_id, novo_status):
-    supabase.table('crypto_games').update({'kanban_status': novo_status}).eq('id', jogo_id).execute()
+    try:
+        supabase.table('crypto_games').update({'kanban_status': novo_status}).eq('id', jogo_id).execute()
+        st.toast(f'Movido para {novo_status}!', icon='✅')
+    except Exception as e:
+        st.error(f"Erro ao mover o card. Verifique se o Supabase tem permissão de UPDATE nas políticas RLS. Detalhe: {e}")
 
 def salvar_data_lancamento(jogo_id, data_str):
-    supabase.table('crypto_games').update({'data_lancamento': data_str}).eq('id', jogo_id).execute()
-    st.toast('📅 Data salva com sucesso!', icon='✅')
+    try:
+        supabase.table('crypto_games').update({'data_lancamento': data_str}).eq('id', jogo_id).execute()
+        st.toast('📅 Data salva com sucesso!', icon='✅')
+    except Exception as e:
+        st.error(f"Erro ao salvar data: {e}")
 
 def limpar_dashboard_inteiro():
     try:
         jogos = buscar_jogos('Radar')
         for j in jogos:
             supabase.table('crypto_games').delete().eq('id', j['id']).execute()
-        st.toast('🚨 Radar limpo! (Jogos no Kanban foram protegidos)', icon='🗑️')
+        st.toast('🚨 Tela de busca limpa!', icon='🗑️')
     except Exception as e:
         st.error(f"Erro ao limpar: {e}")
 
@@ -120,19 +89,16 @@ def inserir_projeto_manual(nome, rede, site_url, twitter_url):
     if rede in ["Solana", "Ronin"]: score += 10
     
     proj = {
-        "nome": nome,
-        "ticker": "TBA",
-        "rede": rede,
-        "alpha_score": min(score, 100),
-        "estagio": "Radar",
-        "investidores": "Mapeamento Manual",
-        "site_url": site_url,
-        "twitter_url": twitter_url,
-        "data_publicacao": datetime.now().strftime("%d/%m/%Y"),
-        "kanban_status": "Radar"
+        "nome": nome, "ticker": "TBA", "rede": rede, "alpha_score": min(score, 100),
+        "estagio": "Radar", "investidores": "Mapeamento Manual", "site_url": site_url,
+        "twitter_url": twitter_url, "data_publicacao": datetime.now().strftime("%d/%m/%Y"),
+        "kanban_status": "Aguardando Lançamento" # Projetos manuais vão direto para o Kanban
     }
-    supabase.table('crypto_games').insert(proj).execute()
-    st.toast(f'✅ {nome} adicionado ao radar!', icon='🎯')
+    try:
+        supabase.table('crypto_games').insert(proj).execute()
+        st.toast(f'✅ {nome} adicionado ao Kanban!', icon='🎯')
+    except Exception as e:
+        st.error(f"Erro ao adicionar: {e}")
 
 def extrair_nome_provavel(titulo, site_url):
     if site_url != "#":
@@ -251,65 +217,44 @@ with st.sidebar:
     
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # SISTEMA DE NAVEGAÇÃO
-    pagina_atual = st.radio("Navegação do Sistema", ["📍 Radar de Caça", "📋 Kanban de Lançamentos"], label_visibility="collapsed")
-    
+    # SISTEMA DE MÓDULOS PRINCIPAIS
+    st.markdown("<h4 style='color: #888;'>MÓDULOS</h4>", unsafe_allow_html=True)
+    modulo_principal = st.radio("Módulos", ["🎮 Game Sniper", "🪙 Crypto Sniper"], label_visibility="collapsed")
     st.divider()
     
-    if pagina_atual == "📍 Radar de Caça":
-        if st.button("🚀 Buscar Crypto Games", use_container_width=True):
-            buscar_projetos_reais()
-            
-        st.subheader("🔎 Filtros")
-        filtro_rede = st.selectbox("Rede", ["Todas", "Solana", "Ronin", "Immutable X", "Polygon", "Avalanche", "Outra"])
-        
-        with st.expander("➕ Adicionar Projeto Manual"):
-            with st.form("form_manual"):
-                m_nome = st.text_input("Nome do Jogo")
-                m_rede = st.selectbox("Rede", ["Solana", "Ronin", "Immutable X", "Polygon", "Avalanche", "Outra"])
-                m_site = st.text_input("Link do Site")
-                m_twitter = st.text_input("Link do Twitter")
-                if st.form_submit_button("Salvar no Radar", use_container_width=True) and m_nome:
-                    inserir_projeto_manual(m_nome, m_rede, m_site, m_twitter)
-
+    if modulo_principal == "🎮 Game Sniper":
+        pagina_atual = st.radio("Menu de Jogos", ["Busca", "Kanban"])
         st.divider()
-        if st.button("🚨 Limpar Apenas o Radar", type="primary", use_container_width=True):
-            limpar_dashboard_inteiro()
+        
+        if pagina_atual == "Busca":
+            if st.button("🚀 Buscar Projetos", use_container_width=True):
+                buscar_projetos_reais()
+            st.subheader("🔎 Filtros")
+            filtro_rede = st.selectbox("Rede", ["Todas", "Solana", "Ronin", "Immutable X", "Polygon", "Avalanche", "Outra"])
+            st.divider()
+            if st.button("🚨 Limpar Apenas a Busca", type="primary", use_container_width=True):
+                limpar_dashboard_inteiro()
+                st.rerun()
 
-# --- Renderização HTML do Card Comum ---
+    elif modulo_principal == "🪙 Crypto Sniper":
+        st.info("Módulo de snipagem direta de tokens em desenvolvimento. Brevemente disponível.")
+        pagina_atual = "Em Breve"
+
+# --- Renderização HTML do Card Comum (Livre de Espaços em Branco) ---
 def renderizar_card(jogo, mostrar_botoes_radar=False, mostrar_botoes_kanban=False):
     score = jogo['alpha_score']
     badge_class = "score-badge low" if score < 60 else "score-badge medium" if score < 85 else "score-badge"
     v_url = jogo.get('video_url', '#')
     
-    data_lanc_html = ""
-    if jogo.get('data_lancamento'):
-        data_lanc_html = f"<div class='kanban-date'>🚀 Lançamento: {jogo['data_lancamento']}</div>"
+    data_lanc_html = f"<div class='kanban-date'>🚀 Lançamento: {jogo['data_lancamento']}</div>" if jogo.get('data_lancamento') else ""
+    link_fonte = f'<a href="{v_url}" target="_blank" class="yt-link">▶️ Fonte</a>' if v_url and v_url != '#' else ''
     
+    # HTML completamente compactado para evitar a quebra do st.markdown
     html = f"""
-    <div class="sniper-card">
-        <div class="card-header">
-            <div class="game-title-label">
-                <span class="game-title">{jogo['nome']}</span>
-                <span class="game-ticker">{jogo['ticker'] or ''}</span>
-            </div>
-            <div class="{badge_class}">{score}</div>
-        </div>
-        <div class="tags-row">
-            <span class="tag">⛓️ {jogo['rede']}</span>
-        </div>
-        <div class="info-row"><strong>📅 Encontrado:</strong> {jogo.get('data_publicacao', 'N/A')} | <strong>👁️ Views:</strong> {jogo.get('visualizacoes', 'N/A')}</div>
-        {data_lanc_html}
-        <div class="links-row">
-            <a href="{jogo.get('twitter_url', '#')}" target="_blank">🐦 Twitter</a>
-            <a href="{jogo.get('site_url', '#')}" target="_blank">🌐 Site Oficial</a>
-            {f'<a href="{v_url}" target="_blank" class="yt-link">▶️ Fonte</a>' if v_url and v_url != '#' else ''}
-        </div>
-    </div>
+    <div class="sniper-card"><div class="card-header"><div class="game-title-label"><span class="game-title">{jogo['nome']}</span><span class="game-ticker">{jogo['ticker'] or ''}</span></div><div class="{badge_class}">{score}</div></div><div class="tags-row"><span class="tag">⛓️ {jogo['rede']}</span></div><div class="info-row"><strong>📅 Encontrado:</strong> {jogo.get('data_publicacao', 'N/A')} | <strong>👁️ Views:</strong> {jogo.get('visualizacoes', 'N/A')}</div>{data_lanc_html}<div class="links-row"><a href="{jogo.get('twitter_url', '#')}" target="_blank">🐦 Twitter</a><a href="{jogo.get('site_url', '#')}" target="_blank">🌐 Site Oficial</a>{link_fonte}</div></div>
     """
     st.markdown(html, unsafe_allow_html=True)
     
-    # Botões do Radar (Adicionar à Esquerda, Deletar à Direita)
     if mostrar_botoes_radar:
         b1, b2 = st.columns(2)
         with b1:
@@ -321,14 +266,12 @@ def renderizar_card(jogo, mostrar_botoes_radar=False, mostrar_botoes_kanban=Fals
                 apagar_jogo(jogo['id'])
                 st.rerun()
 
-    # Botões e Controles do Kanban
     if mostrar_botoes_kanban:
         with st.expander("📅 Marcar Data"):
             col_data, col_btn = st.columns([2, 1])
             with col_data:
                 data_escolhida = st.date_input("Data", key=f"date_{jogo['id']}")
             with col_btn:
-                # Usa espaço em branco para alinhar o botão
                 st.write("") 
                 if st.button("Salvar", key=f"save_dt_{jogo['id']}", use_container_width=True):
                     salvar_data_lancamento(jogo['id'], data_escolhida.strftime("%d/%m/%Y"))
@@ -352,32 +295,44 @@ def renderizar_card(jogo, mostrar_botoes_radar=False, mostrar_botoes_kanban=Fals
 # --- Lógica de Exibição das Páginas ---
 st.markdown("<br>", unsafe_allow_html=True)
 
-if pagina_atual == "📍 Radar de Caça":
-    jogos = buscar_jogos(status_filtro='Radar')
-    if not jogos:
-        st.info("O radar está limpo. Busque novos projetos.")
-    else:
-        col1, col2, col3 = st.columns(3)
-        for idx, jogo in enumerate(jogos):
-            if filtro_rede != "Todas" and jogo['rede'] != filtro_rede: continue
-            if idx % 3 == 0:
-                with col1: renderizar_card(jogo, mostrar_botoes_radar=True)
-            elif idx % 3 == 1:
-                with col2: renderizar_card(jogo, mostrar_botoes_radar=True)
-            else:
-                with col3: renderizar_card(jogo, mostrar_botoes_radar=True)
+if modulo_principal == "🎮 Game Sniper":
+    if pagina_atual == "Busca":
+        jogos = buscar_jogos(status_filtro='Radar')
+        if not jogos:
+            st.info("A busca está vazia. Acione o rastreador no menu lateral.")
+        else:
+            col1, col2, col3 = st.columns(3)
+            for idx, jogo in enumerate(jogos):
+                if filtro_rede != "Todas" and jogo['rede'] != filtro_rede: continue
+                if idx % 3 == 0:
+                    with col1: renderizar_card(jogo, mostrar_botoes_radar=True)
+                elif idx % 3 == 1:
+                    with col2: renderizar_card(jogo, mostrar_botoes_radar=True)
+                else:
+                    with col3: renderizar_card(jogo, mostrar_botoes_radar=True)
 
-elif pagina_atual == "📋 Kanban de Lançamentos":
-    col_aguardando, col_lancado = st.columns(2)
-    
-    with col_aguardando:
-        st.markdown("<h3 style='text-align: center; color: #FFD700;'>⏳ Aguardando Lançamento</h3>", unsafe_allow_html=True)
-        jogos_ag = buscar_jogos(status_filtro='Aguardando Lançamento')
-        for jogo in jogos_ag:
-            renderizar_card(jogo, mostrar_botoes_kanban=True)
-            
-    with col_lancado:
-        st.markdown("<h3 style='text-align: center; color: #00FF66;'>🚀 Projetos Lançados</h3>", unsafe_allow_html=True)
-        jogos_lanc = buscar_jogos(status_filtro='Lançado')
-        for jogo in jogos_lanc:
-            renderizar_card(jogo, mostrar_botoes_kanban=True)
+    elif pagina_atual == "Kanban":
+        with st.expander("➕ Adicionar Projeto Manualmente"):
+            with st.form("form_manual"):
+                m_nome = st.text_input("Nome do Jogo")
+                m_rede = st.selectbox("Rede", ["Solana", "Ronin", "Immutable X", "Polygon", "Avalanche", "Outra"])
+                m_site = st.text_input("Link do Site")
+                m_twitter = st.text_input("Link do Twitter")
+                if st.form_submit_button("Salvar no Kanban", use_container_width=True) and m_nome:
+                    inserir_projeto_manual(m_nome, m_rede, m_site, m_twitter)
+                    st.rerun()
+                    
+        st.divider()
+        col_aguardando, col_lancado = st.columns(2)
+        
+        with col_aguardando:
+            st.markdown("<h3 style='text-align: center; color: #FFD700;'>⏳ Aguardando Lançamento</h3>", unsafe_allow_html=True)
+            jogos_ag = buscar_jogos(status_filtro='Aguardando Lançamento')
+            for jogo in jogos_ag:
+                renderizar_card(jogo, mostrar_botoes_kanban=True)
+                
+        with col_lancado:
+            st.markdown("<h3 style='text-align: center; color: #00FF66;'>🚀 Projetos Lançados</h3>", unsafe_allow_html=True)
+            jogos_lanc = buscar_jogos(status_filtro='Lançado')
+            for jogo in jogos_lanc:
+                renderizar_card(jogo, mostrar_botoes_kanban=True)
