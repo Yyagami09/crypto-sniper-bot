@@ -29,10 +29,70 @@ if 'mostrar_form_manual' not in st.session_state:
 if 'auto_sniper' not in st.session_state:
     st.session_state.auto_sniper = False
 
-# --- Estilização CSS (Protegido e Minificado) ---
+# --- Estilização CSS Base ---
 css = """
 <style>
-.stApp{background-color:#0B0E11;color:#EAECEF}[data-testid="stSidebar"]{background-color:#080A0C;border-right:1px solid #14181F}.block-container{padding-top:1.8rem!important;max-width:96%!important}.breadcrumb{font-size:13px;color:#848E9C;margin-bottom:15px;font-weight:500}.breadcrumb span{color:#00E6A8;font-weight:600}.main-title{font-size:32px;font-weight:800;color:#FFF;margin:0 0 4px 0;letter-spacing:-.5px}.sub-title{font-size:15px;color:#848E9C;margin-bottom:24px}.kpi-card{background-color:#12161C;border:1px solid #1E242D;border-radius:12px;padding:18px 20px;display:flex;align-items:center;gap:16px;margin-bottom:20px}.kpi-icon{width:46px;height:46px;border-radius:10px;background-color:#192028;display:flex;align-items:center;justify-content:center;font-size:20px;border:1px solid #252E3A}.kpi-label{font-size:13px;color:#848E9C;margin:0 0 2px 0}.kpi-val{font-size:26px;font-weight:800;color:#FFF;margin:0;line-height:1.1}.sniper-card{background-color:#12161C;border:1px solid #1E242D;border-radius:12px;padding:18px;margin-bottom:8px;transition:border-color .2s;position:relative}.sniper-card:hover{border-color:#2B3645}.card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}.game-name{font-size:18px;font-weight:700;color:#FFF;margin:0 0 6px 0}.badge-tba{background-color:#1C222B;color:#848E9C;font-size:11px;padding:3px 8px;border-radius:5px;font-weight:600;display:inline-block;margin-bottom:8px}.net-pill{background-color:#191E26;border:1px solid #262E3B;color:#EAECEF;font-size:12px;padding:4px 10px;border-radius:6px;display:inline-flex;align-items:center;gap:6px;font-weight:500}.score-wrapper{display:flex;align-items:baseline;gap:4px}.score-box{font-weight:800;font-size:16px;padding:5px 10px;border-radius:7px;color:#000}.score-green{background-color:#00E6A8;box-shadow:0 0 12px rgba(0,230,168,.25)}.score-yellow{background-color:#FCD535;box-shadow:0 0 12px rgba(252,213,53,.25)}.score-red{background-color:#F6465D;color:#FFF}.score-max{font-size:12px;color:#5E6673;font-weight:600}.progress-bg{width:100%;height:5px;background-color:#1E242D;border-radius:3px;margin:14px 0;overflow:hidden}.progress-fill-green{height:100%;background-color:#00E6A8;border-radius:3px}.progress-fill-yellow{height:100%;background-color:#FCD535;border-radius:3px}.progress-fill-red{height:100%;background-color:#F6465D;border-radius:3px}.meta-line{font-size:12px;color:#848E9C;margin-bottom:12px;display:flex;gap:12px;align-items:center}.links-line{font-size:13px;padding-top:12px;border-top:1px solid #1E242D;display:flex;gap:14px;align-items:center}.links-line a{color:#848E9C;text-decoration:none;font-weight:500;transition:color .2s}.links-line a:hover{color:#00E6A8}div.stButton>button{background-color:#161B22;color:#EAECEF;border:1px solid #262E3B;border-radius:8px;font-weight:600;font-size:13px;padding:.45rem 1rem;transition:all .2s}div.stButton>button:hover{border-color:#00E6A8;color:#00E6A8;background-color:#121D1B}div.stButton>button[kind="primary"]{background-color:#00E6A8!important;color:#06110E!important;border:none!important;font-weight:700!important}div.stButton>button[kind="primary"]:hover{background-color:#00C892!important;box-shadow:0 0 15px rgba(0,230,168,.35)}.btn-deletar-x button{background:transparent!important;border:1px solid #262E3B!important;color:#848E9C!important;font-size:14px!important;padding:0 8px!important;border-radius:8px!important;height:100%!important}.btn-deletar-x button:hover{background:#F6465D!important;color:#FFF!important;border-color:#F6465D!important}[data-testid="stPopover"]>button{background:transparent!important;border:1px solid #1E242D!important;color:#848E9C!important;padding:2px 10px!important;min-height:32px!important}[data-testid="stPopover"]>button:hover{border-color:#00E6A8!important;color:#FFF!important}.sentinel-hud{background:#071B17;border:1px solid #00DCB0;padding:12px;border-radius:8px;display:flex;align-items:center;justify-content:center;gap:15px;margin-bottom:20px;box-shadow:inset 0 0 15px rgba(0,220,176,.1)}.sentinel-pulse{width:10px;height:10px;background-color:#00DCB0;border-radius:50%;box-shadow:0 0 8px #00DCB0;animation:pulse 1.5s infinite}@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(0,220,176,.7)}70%{box-shadow:0 0 0 10px rgba(0,220,176,0)}100%{box-shadow:0 0 0 0 rgba(0,220,176,0)}}.sentinel-text{color:#00DCB0;font-size:16px;font-weight:700;letter-spacing:1px}.kanban-header{background-color:#12161C;border:1px solid #1E242D;border-radius:10px;padding:12px 12px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}.kanban-header-title{font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px;margin:0}.count-pill{background-color:#1E242D;color:#848E9C;font-size:12px;padding:2px 8px;border-radius:10px;font-weight:600}.k-card{background-color:#12161C;border:1px solid #1E242D;border-radius:10px;padding:14px;margin-bottom:8px}.k-info-line{font-size:11px;color:#848E9C;margin-top:10px;display:flex;justify-content:space-between;align-items:center}.k-note-line{font-size:11px;color:#6C7582;margin-top:6px;display:flex;justify-content:space-between;align-items:center;font-style:italic}.k-action-link{color:#00E6A8!important;text-decoration:none;font-weight:600;font-size:11px}.k-countdown{background-color:#071B17;border:1px solid #00DCB0;color:#00E6A8;font-family:monospace;font-size:12px;font-weight:700;text-align:center;padding:6px;border-radius:6px;margin-top:10px;box-shadow:inset 0 0 8px rgba(0,220,176,.1);letter-spacing:1px;transition:all .3s}
+.stApp { background-color: #0B0E11; color: #EAECEF; }
+[data-testid="stSidebar"] { background-color: #080A0C; border-right: 1px solid #14181F; }
+.block-container { padding-top: 1.8rem !important; max-width: 96% !important; }
+
+.breadcrumb { font-size: 13px; color: #848E9C; margin-bottom: 15px; font-weight: 500; }
+.breadcrumb span { color: #00E6A8; font-weight: 600; }
+.main-title { font-size: 32px; font-weight: 800; color: #FFFFFF; margin: 0 0 4px 0; letter-spacing: -0.5px; }
+.sub-title { font-size: 15px; color: #848E9C; margin-bottom: 24px; }
+
+.kpi-card { background-color: #12161C; border: 1px solid #1E242D; border-radius: 12px; padding: 18px 20px; display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+.kpi-icon { width: 46px; height: 46px; border-radius: 10px; background-color: #192028; display: flex; align-items: center; justify-content: center; font-size: 20px; border: 1px solid #252E3A; }
+.kpi-label { font-size: 13px; color: #848E9C; margin: 0 0 2px 0; }
+.kpi-val { font-size: 26px; font-weight: 800; color: #FFFFFF; margin: 0; line-height: 1.1; }
+
+.sniper-card { background-color: #12161C; border: 1px solid #1E242D; border-radius: 12px; padding: 18px; margin-bottom: 8px; transition: border-color 0.2s; position: relative; }
+.sniper-card:hover { border-color: #2B3645; }
+.card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+.game-name { font-size: 18px; font-weight: 700; color: #FFFFFF; margin: 0 0 6px 0; }
+.badge-tba { background-color: #1C222B; color: #848E9C; font-size: 11px; padding: 3px 8px; border-radius: 5px; font-weight: 600; display: inline-block; margin-bottom: 8px; }
+.net-pill { background-color: #191E26; border: 1px solid #262E3B; color: #EAECEF; font-size: 12px; padding: 4px 10px; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; font-weight: 500; }
+
+.score-wrapper { display: flex; align-items: baseline; gap: 4px; }
+.score-box { font-weight: 800; font-size: 16px; padding: 5px 10px; border-radius: 7px; color: #000; }
+.score-green { background-color: #00E6A8; box-shadow: 0 0 12px rgba(0, 230, 168, 0.25); }
+.score-yellow { background-color: #FCD535; box-shadow: 0 0 12px rgba(252, 213, 53, 0.25); }
+.score-red { background-color: #F6465D; color: #FFF; }
+.score-max { font-size: 12px; color: #5E6673; font-weight: 600; }
+
+.progress-bg { width: 100%; height: 5px; background-color: #1E242D; border-radius: 3px; margin: 14px 0; overflow: hidden; }
+.progress-fill-green { height: 100%; background-color: #00E6A8; border-radius: 3px; }
+.progress-fill-yellow { height: 100%; background-color: #FCD535; border-radius: 3px; }
+.progress-fill-red { height: 100%; background-color: #F6465D; border-radius: 3px; }
+
+.meta-line { font-size: 12px; color: #848E9C; margin-bottom: 12px; display: flex; gap: 12px; align-items: center; }
+.links-line { font-size: 13px; padding-top: 12px; border-top: 1px solid #1E242D; display: flex; gap: 14px; align-items: center; }
+.links-line a { color: #848E9C; text-decoration: none; font-weight: 500; transition: color 0.2s; }
+.links-line a:hover { color: #00E6A8; }
+
+div.stButton > button { background-color: #161B22; color: #EAECEF; border: 1px solid #262E3B; border-radius: 8px; font-weight: 600; font-size: 13px; padding: 0.45rem 1rem; transition: all 0.2s; }
+div.stButton > button:hover { border-color: #00E6A8; color: #00E6A8; background-color: #121D1B; }
+div.stButton > button[kind="primary"] { background-color: #00E6A8 !important; color: #06110E !important; border: none !important; font-weight: 700 !important; }
+div.stButton > button[kind="primary"]:hover { background-color: #00C892 !important; box-shadow: 0 0 15px rgba(0, 230, 168, 0.35); }
+
+.btn-deletar-x button { background: transparent !important; border: 1px solid #262E3B !important; color: #848E9C !important; font-size: 14px !important; padding: 0 8px !important; border-radius: 8px !important; height: 100% !important; }
+.btn-deletar-x button:hover { background: #F6465D !important; color: #FFF !important; border-color: #F6465D !important; }
+[data-testid="stPopover"] > button { background: transparent !important; border: 1px solid #1E242D !important; color: #848E9C !important; padding: 2px 10px !important; min-height: 32px !important; }
+[data-testid="stPopover"] > button:hover { border-color: #00E6A8 !important; color: #FFF !important; }
+
+.sentinel-hud { background: #071B17; border: 1px solid #00DCB0; padding: 12px; border-radius: 8px; display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 20px; box-shadow: inset 0 0 15px rgba(0,220,176,0.1); }
+.sentinel-pulse { width: 10px; height: 10px; background-color: #00DCB0; border-radius: 50%; box-shadow: 0 0 8px #00DCB0; animation: pulse 1.5s infinite; }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(0,220,176, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(0,220,176, 0); } 100% { box-shadow: 0 0 0 0 rgba(0,220,176, 0); } }
+.sentinel-text { color: #00DCB0; font-size: 16px; font-weight: 700; letter-spacing: 1px; }
+
+.kanban-header { background-color: #12161C; border: 1px solid #1E242D; border-radius: 10px; padding: 12px 12px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
+.kanban-header-title { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; margin: 0; }
+.count-pill { background-color: #1E242D; color: #848E9C; font-size: 12px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+.k-card { background-color: #12161C; border: 1px solid #1E242D; border-radius: 10px; padding: 14px; margin-bottom: 8px; }
+.k-info-line { font-size: 11px; color: #848E9C; margin-top: 10px; display: flex; justify-content: space-between; align-items: center; }
+.k-note-line { font-size: 11px; color: #6C7582; margin-top: 6px; display: flex; justify-content: space-between; align-items: center; font-style: italic; }
+.k-action-link { color: #00E6A8 !important; text-decoration: none; font-weight: 600; font-size: 11px; }
+.k-countdown { background-color: #071B17; border: 1px solid #00DCB0; color: #00E6A8; font-family: monospace; font-size: 12px; font-weight: 700; text-align: center; padding: 6px; border-radius: 6px; margin-top: 10px; box-shadow: inset 0 0 8px rgba(0,220,176,0.1); letter-spacing: 1px; transition: all 0.3s; }
 </style>
 """
 st.markdown(css, unsafe_allow_html=True)
@@ -48,7 +108,7 @@ def obter_icone_rede(rede):
     elif "immutable" in r: return '🛡️ Immutable X'
     return f'⛓️ {rede}'
 
-# --- Conversor de Data para o Timer ---
+# --- Conversor de Data ---
 def data_pt_para_iso(data_str):
     meses = {"jan":"01", "fev":"02", "mar":"03", "abr":"04", "mai":"05", "jun":"06", "jul":"07", "ago":"08", "set":"09", "out":"10", "nov":"11", "dez":"12"}
     try:
@@ -75,12 +135,11 @@ def limpar_dashboard_inteiro():
     for j in jogos:
         if j.get('kanban_status') not in status_protegidos:
             apagar_jogo(j['id'])
-    st.toast('🚨 Tela de busca limpa! Projetos salvos foram protegidos.', icon='🗑️')
+    st.toast('🚨 Tela de busca limpa!', icon='🗑️')
 
 def atualizar_status_kanban(jogo_id, novo_status):
     res = supabase.table('crypto_games').update({'kanban_status': novo_status}).eq('id', jogo_id).execute()
-    if not res.data: st.error("⚠️ Erro de permissão no Supabase (UPDATE).")
-    else: st.toast(f'Movido para: {novo_status}', icon='✅')
+    if res.data: st.toast(f'Movido para: {novo_status}', icon='✅')
 
 def salvar_detalhes_kanban(jogo_id, data_str, anotacao_str):
     dados = {}
@@ -180,11 +239,24 @@ def buscar_projetos_reais(custom_query=None):
                 novos += 1
                 
             if novos > 0: st.toast(f'{novos} projetos encontrados!', icon='🚀')
-        except Exception as e: st.error(f"Erro na busca: {e}")
+        except Exception as e: st.error(f"Erro na busca.")
 
-# --- Navegação Lateral ---
+# --- Lógica de Navegação Sidebar ---
 def navegar_sidebar(campo, destino):
     st.session_state[campo] = destino
+
+# Nomes principais de navegação
+nav_items_main = [
+    ("nav_meme", "Meme Trader", "meme", "modulo_ativo"),
+    ("nav_altcoin", "Altcoin Trader", "crypto", "modulo_ativo"),
+    ("nav_game", "Game Sniper", "game", "modulo_ativo"),
+]
+
+# Submenus para o Game Sniper
+nav_items_sub = [
+    ("nav_sub_search", "Buscar projetos", "search", "pagina"),
+    ("nav_sub_kanban", "Kanban", "kanban", "pagina"),
+]
 
 NAV_ICONS = {
     "meme": '<path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/>',
@@ -210,13 +282,17 @@ sidebar_css = """
 .sniper-brand-fallback { display: flex; align-items: center; gap: 8px; min-height: 56px; color: #F2F4F5; font-size: 23px; font-weight: 800; letter-spacing: -1px; white-space: nowrap; }
 .sniper-brand-fallback svg { width: 38px; height: 38px; flex-shrink: 0; }
 [data-testid="stSidebar"] .sidebar-section { margin: 0 8px 13px; color: #9AABBD; font-size: 11px; font-weight: 500; letter-spacing: 1.3px; line-height: 18px; }
-[data-testid="stSidebar"] .sidebar-divider { height: 1px; background: #252D35; margin: 26px 0 24px; }
-[data-testid="stSidebar"] :is(.st-key-nav_meme, .st-key-nav_altcoin, .st-key-nav_game, .st-key-nav_search, .st-key-nav_kanban) { margin-bottom: 6px; }
-[data-testid="stSidebar"] :is(.st-key-nav_meme, .st-key-nav_altcoin, .st-key-nav_game, .st-key-nav_search, .st-key-nav_kanban) button { width: 100% !important; min-height: 47px !important; padding: 0 18px !important; border: 1px solid transparent !important; border-left: 1px solid transparent !important; border-radius: 9px !important; background: transparent !important; box-shadow: none !important; color: #ADBDCF !important; display: flex !important; align-items: center !important; justify-content: flex-start !important; gap: 16px !important; transition: background .18s ease, color .18s ease; }
-[data-testid="stSidebar"] :is(.st-key-nav_meme, .st-key-nav_altcoin, .st-key-nav_game, .st-key-nav_search, .st-key-nav_kanban) button p { margin: 0 !important; color: inherit !important; font-size: 14px !important; font-weight: 500 !important; line-height: 1.2 !important; text-align: left !important; white-space: nowrap; }
-[data-testid="stSidebar"] :is(.st-key-nav_meme, .st-key-nav_altcoin, .st-key-nav_game, .st-key-nav_search, .st-key-nav_kanban) button::before { content: ""; width: 21px; height: 21px; flex: 0 0 21px; background-color: currentColor; -webkit-mask: var(--nav-icon) center / contain no-repeat; mask: var(--nav-icon) center / contain no-repeat; }
-[data-testid="stSidebar"] :is(.st-key-nav_meme, .st-key-nav_altcoin, .st-key-nav_game, .st-key-nav_search, .st-key-nav_kanban) button:hover { color: #EEF5F7 !important; background: #142027 !important; }
-[data-testid="stSidebar"] :is(.st-key-nav_meme, .st-key-nav_altcoin, .st-key-nav_game, .st-key-nav_search, .st-key-nav_kanban) button:focus-visible { outline: 2px solid #00DCB0 !important; outline-offset: 3px; }
+[data-testid="stSidebar"] :is(.st-key-nav_meme, .st-key-nav_altcoin, .st-key-nav_game, .st-key-nav_sub_search, .st-key-nav_sub_kanban) { margin-bottom: 6px; }
+[data-testid="stSidebar"] :is(.st-key-nav_meme, .st-key-nav_altcoin, .st-key-nav_game, .st-key-nav_sub_search, .st-key-nav_sub_kanban) button { width: 100% !important; min-height: 47px !important; padding: 0 18px !important; border: 1px solid transparent !important; border-left: 1px solid transparent !important; border-radius: 9px !important; background: transparent !important; box-shadow: none !important; color: #ADBDCF !important; display: flex !important; align-items: center !important; justify-content: flex-start !important; gap: 16px !important; transition: background .18s ease, color .18s ease; }
+[data-testid="stSidebar"] :is(.st-key-nav_meme, .st-key-nav_altcoin, .st-key-nav_game, .st-key-nav_sub_search, .st-key-nav_sub_kanban) button p { margin: 0 !important; color: inherit !important; font-size: 14px !important; font-weight: 500 !important; line-height: 1.2 !important; text-align: left !important; white-space: nowrap; }
+[data-testid="stSidebar"] :is(.st-key-nav_meme, .st-key-nav_altcoin, .st-key-nav_game, .st-key-nav_sub_search, .st-key-nav_sub_kanban) button::before { content: ""; width: 21px; height: 21px; flex: 0 0 21px; background-color: currentColor; -webkit-mask: var(--nav-icon) center / contain no-repeat; mask: var(--nav-icon) center / contain no-repeat; }
+[data-testid="stSidebar"] :is(.st-key-nav_meme, .st-key-nav_altcoin, .st-key-nav_game, .st-key-nav_sub_search, .st-key-nav_sub_kanban) button:hover { color: #EEF5F7 !important; background: #142027 !important; }
+[data-testid="stSidebar"] :is(.st-key-nav_meme, .st-key-nav_altcoin, .st-key-nav_game, .st-key-nav_sub_search, .st-key-nav_sub_kanban) button:focus-visible { outline: 2px solid #00DCB0 !important; outline-offset: 3px; }
+
+/* Design do Submenu indentado */
+[data-testid="stSidebar"] :is(.st-key-nav_sub_search, .st-key-nav_sub_kanban) button { width: calc(100% - 24px) !important; margin-left: 24px !important; min-height: 40px !important; font-size: 13px !important; border-radius: 0 8px 8px 0 !important; border-left: 2px solid #1E242D !important; }
+[data-testid="stSidebar"] :is(.st-key-nav_sub_search, .st-key-nav_sub_kanban) button:hover { border-left-color: #00E6A8 !important; }
+
 [data-testid="stSidebar"] .st-key-sniper_footer { margin-top: auto !important; padding-top: 32px; }
 .sniper-online { display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 0 16px; color: #DCE6EE; font-size: 13px; }
 .sniper-online-label { display: flex; align-items: center; gap: 14px; }
@@ -225,20 +301,21 @@ sidebar_css = """
 </style>
 """
 
-nav_items = [
-    ("nav_meme", "Meme Trader", "meme", "modulo_ativo"),
-    ("nav_altcoin", "Altcoin Trader", "crypto", "modulo_ativo"),
-    ("nav_game", "Game Sniper", "game", "modulo_ativo"),
-    ("nav_search", "Buscar projetos", "search", "pagina"),
-    ("nav_kanban", "Kanban", "kanban", "pagina"),
-]
-
 icon_css = []
-for key, label, icon, state_key in nav_items:
+# Aplica ícones pros módulos
+for key, label, icon, state_key in nav_items_main:
     selector = f'[data-testid="stSidebar"] .st-key-{key} button'
     icon_css.append(f'{selector} {{ --nav-icon: url("{svg_nav_uri(NAV_ICONS[icon])}"); }}')
+    # Deixa o módulo pai ativado caso o submenu também esteja a ser usado
     if st.session_state[state_key] == label:
         icon_css.append(selector + ''' { background: linear-gradient(90deg, #0B302F, #102729) !important; border-color: #123436 !important; border-left-color: #00DCB0 !important; color: #8AF5F0 !important; }''')
+
+# Aplica ícones pros submenus
+for key, label, icon, state_key in nav_items_sub:
+    selector = f'[data-testid="stSidebar"] .st-key-{key} button'
+    icon_css.append(f'{selector} {{ --nav-icon: url("{svg_nav_uri(NAV_ICONS[icon])}"); }}')
+    if st.session_state[state_key] == label and st.session_state.modulo_ativo == "Game Sniper":
+        icon_css.append(selector + ''' { background: #142027 !important; border-left-color: #00DCB0 !important; color: #8AF5F0 !important; }''')
 
 st.markdown(sidebar_css + '<style>' + '\n'.join(icon_css) + '</style>', unsafe_allow_html=True)
 
@@ -251,13 +328,13 @@ with st.sidebar:
             st.markdown('''<div class="sniper-brand-fallback"><svg viewBox="0 0 40 40" fill="none" aria-hidden="true"><path d="M32 10a15 15 0 1 0 0 20" stroke="#00DCB0" stroke-width="6"/><path d="M23 11a10 10 0 0 1 0 18" stroke="#F2F4F5" stroke-width="3"/><circle cx="19" cy="20" r="5" fill="#00DCB0"/></svg><span>Crypto Sniper</span></div>''', unsafe_allow_html=True)
     
     st.markdown('<div class="sidebar-section">MÓDULOS</div>', unsafe_allow_html=True)
-    for key, label, icon, state_key in nav_items[:3]:
-        st.button(label, key=key, use_container_width=True, on_click=navegar_sidebar, args=(state_key, label))
     
-    st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
-    st.markdown('<div class="sidebar-section">WORKSPACE</div>', unsafe_allow_html=True)
-    for key, label, icon, state_key in nav_items[3:]:
+    for key, label, icon, state_key in nav_items_main:
         st.button(label, key=key, use_container_width=True, on_click=navegar_sidebar, args=(state_key, label))
+        # Se for o Game Sniper e estiver ativo, abre o dropdown (submenu)
+        if label == "Game Sniper" and st.session_state.modulo_ativo == "Game Sniper":
+            for sub_key, sub_label, sub_icon, sub_state_key in nav_items_sub:
+                st.button(sub_label, key=sub_key, use_container_width=True, on_click=navegar_sidebar, args=(sub_state_key, sub_label))
         
     with st.container(key="sniper_footer"):
         st.markdown('''<div class="sniper-online" role="status"><span class="sniper-online-label"><span class="sniper-online-dot" aria-hidden="true"></span><span>Sistema online</span></span><span class="sniper-online-chevron" aria-hidden="true">›</span></div>''', unsafe_allow_html=True)
@@ -265,6 +342,9 @@ with st.sidebar:
 modulo = st.session_state.modulo_ativo
 todos_jogos = buscar_todos_jogos()
 
+# ==========================================
+# ROTEAMENTO DAS TELAS
+# ==========================================
 if modulo == "Meme Trader":
     st.markdown("<div class='breadcrumb'>🚀 Meme Trader / <span>Em breve</span></div>", unsafe_allow_html=True)
     st.markdown("<h1 class='main-title'>Meme Trader</h1><p class='sub-title'>Módulo de rastreamento e pump de memecoins em construção.</p>", unsafe_allow_html=True)
@@ -273,7 +353,7 @@ elif modulo == "Altcoin Trader":
     st.markdown("<div class='breadcrumb'>📊 Altcoin Trader / <span>Em breve</span></div>", unsafe_allow_html=True)
     st.markdown("<h1 class='main-title'>Altcoin Trader</h1><p class='sub-title'>Análise gráfica e rastreamento de altcoins em construção.</p>", unsafe_allow_html=True)
 
-else:
+elif modulo == "Game Sniper":
     if st.session_state.pagina == "Buscar projetos":
         col_t1, col_t2, col_t3 = st.columns([2.8, 1, 1.2])
         with col_t1:
