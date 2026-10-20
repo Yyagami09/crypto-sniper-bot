@@ -225,7 +225,6 @@ sidebar_css = """
 </style>
 """
 
-# NOVA ORDEM AQUI
 nav_items = [
     ("nav_meme", "Meme Trader", "meme", "modulo_ativo"),
     ("nav_altcoin", "Altcoin Trader", "crypto", "modulo_ativo"),
@@ -395,36 +394,19 @@ else:
                 icone_rede_html = obter_icone_rede(jogo.get('rede', 'Outra'))
                 v_url = jogo.get('video_url', '#')
                 
-                card_html = f"""
-<div class="sniper-card">
-    <div class="card-top">
-        <div>
-            <p class="game-name">{jogo['nome']}</p>
-            <span class="badge-tba">A anunciar</span><br>
-            <div class="net-pill">{icone_rede_html}</div>
-        </div>
-        <div class="score-wrapper">
-            <div class="score-box {cor_score}">{score}</div>
-            <span class="score-max">/100</span>
-        </div>
-    </div>
-    <div class="progress-bg">
-        <div class="{cor_barra}" style="width: {score}%;"></div>
-    </div>
-    <div class="meta-line">
-        <span>📅 Encontrado em {jogo.get('data_publicacao', 'Recente')}</span>
-        <span>|</span>
-        <span>👁️ {views_fmt} visualizações</span>
-    </div>
-    <div class="links-line">
-        <a href="{jogo.get('twitter_url', '#')}" target="_blank">𝕏</a>
-        <span style="color:#262E3B;">|</span>
-        <a href="{jogo.get('site_url', '#')}" target="_blank">🌐 Site oficial</a>
-        <span style="color:#262E3B;">|</span>
-        <a href="{v_url}" target="_blank">↗ Fonte</a>
-    </div>
-</div>
-"""
+                card_html = (
+                    f'<div class="sniper-card"><div class="card-top"><div>'
+                    f'<p class="game-name">{jogo["nome"]}</p>'
+                    f'<span class="badge-tba">A anunciar</span><br><div class="net-pill">{icone_rede_html}</div>'
+                    f'</div><div class="score-wrapper"><div class="score-box {cor_score}">{score}</div>'
+                    f'<span class="score-max">/100</span></div></div><div class="progress-bg">'
+                    f'<div class="{cor_barra}" style="width: {score}%;"></div></div><div class="meta-line">'
+                    f'<span>📅 Encontrado em {jogo.get("data_publicacao", "Recente")}</span><span>|</span>'
+                    f'<span>👁️ {views_fmt} visualizações</span></div><div class="links-line">'
+                    f'<a href="{jogo.get("twitter_url", "#")}" target="_blank">𝕏</a><span style="color:#262E3B;">|</span>'
+                    f'<a href="{jogo.get("site_url", "#")}" target="_blank">🌐 Site oficial</a><span style="color:#262E3B;">|</span>'
+                    f'<a href="{v_url}" target="_blank">↗ Fonte</a></div></div>'
+                )
                 st.markdown(card_html, unsafe_allow_html=True)
                 
                 b_add, b_opt = st.columns([5, 1])
@@ -535,28 +517,16 @@ else:
             if status_atual == 'Aguardando Lançamento' and iso_date:
                 countdown_html = f"<div class='k-countdown' data-target='{iso_date}'>⏳ Calculando...</div>"
 
-            k_html = f"""
-<div class="k-card">
-    <div class="card-top">
-        <div style="display:flex; gap:10px; align-items:center;">
-            <span style="color:#474D57; font-size:16px;">⠿</span>
-            <div>
-                <p class="game-name" style="font-size:14px; margin-bottom:4px;">{jogo['nome']}</p>
-                <div class="net-pill">{icone_rede}</div>
-            </div>
-        </div>
-        <div class="score-box {cor_score}" style="font-size:12px; padding:4px 8px;">{score}</div>
-    </div>
-    <div class="k-info-line">
-        <span>📅 {dt_txt}</span>
-    </div>
-    {countdown_html}
-    <div class="k-note-line" style="margin-top:12px; padding-top:8px; border-top:1px solid #1E242D;">
-        <span>📝 {nota_txt[:28]}</span>
-        {link_acao}
-    </div>
-</div>
-"""
+            k_html = (
+                f'<div class="k-card"><div class="card-top"><div style="display:flex; gap:10px; align-items:center;">'
+                f'<span style="color:#474D57; font-size:16px;">⠿</span><div>'
+                f'<p class="game-name" style="font-size:14px; margin-bottom:4px;">{jogo["nome"]}</p>'
+                f'<div class="net-pill">{icone_rede}</div></div></div><div class="score-box {cor_score}" '
+                f'style="font-size:12px; padding:4px 8px;">{score}</div></div><div class="k-info-line">'
+                f'<span>📅 {dt_txt}</span></div>{countdown_html}<div class="k-note-line" '
+                f'style="margin-top:12px; padding-top:8px; border-top:1px solid #1E242D;">'
+                f'<span>📝 {nota_txt[:28]}</span>{link_acao}</div></div>'
+            )
             st.markdown(k_html, unsafe_allow_html=True)
             
             with st.popover("⚙️ Gerenciar Card", use_container_width=True):
