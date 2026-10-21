@@ -31,7 +31,7 @@ if 'auto_sniper' not in st.session_state:
 if 'menu_expandido' not in st.session_state:
     st.session_state.menu_expandido = False
 
-# --- Estilização CSS (Em linhas curtas para evitar erros de leitura) ---
+# --- Estilização CSS ---
 css = """
 <style>
 .stApp { background-color: #0B0E11; color: #EAECEF; }
@@ -110,7 +110,7 @@ def obter_icone_rede(rede):
     elif "immutable" in r: return '🛡️ Immutable X'
     return f'⛓️ {rede}'
 
-# --- Conversor de Data para o Timer ---
+# --- Conversor de Data ---
 def data_pt_para_iso(data_str):
     meses = {"jan":"01", "fev":"02", "mar":"03", "abr":"04", "mai":"05", "jun":"06", "jul":"07", "ago":"08", "set":"09", "out":"10", "nov":"11", "dez":"12"}
     try:
@@ -256,6 +256,7 @@ def nav_sub(destino):
 
 # Configuração de Menus
 nav_items_main = [
+    ("nav_pump", "Pump Trader", "pump", "modulo_ativo"),
     ("nav_meme", "Meme Trader", "meme", "modulo_ativo"),
     ("nav_altcoin", "Altcoin Trader", "crypto", "modulo_ativo"),
     ("nav_game", "Game Sniper", "game", "modulo_ativo"),
@@ -267,6 +268,7 @@ nav_items_sub = [
 ]
 
 NAV_ICONS = {
+    "pump": '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>',
     "meme": '<path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/>',
     "crypto": '<rect x="3" y="14" width="4" height="7" rx="1"/><rect x="10" y="9" width="4" height="12" rx="1"/><rect x="17" y="3" width="4" height="18" rx="1"/>',
     "game": '<path d="M6 7h12c2 0 3 2 3.5 5l.5 5c.2 2-2 3-3.5 1.5L16 16H8l-2.5 2.5C4 20 1.8 19 2 17l.5-5C3 9 4 7 6 7Z"/><path d="M7 10v5M4.5 12.5h5"/><circle cx="16" cy="11" r=".6"/><circle cx="19" cy="14" r=".6"/>',
@@ -290,12 +292,12 @@ sidebar_css = """
 .sniper-brand-fallback { display: flex; align-items: center; gap: 8px; min-height: 56px; color: #F2F4F5; font-size: 23px; font-weight: 800; letter-spacing: -1px; white-space: nowrap; }
 .sniper-brand-fallback svg { width: 38px; height: 38px; flex-shrink: 0; }
 [data-testid="stSidebar"] .sidebar-section { margin: 0 8px 13px; color: #9AABBD; font-size: 11px; font-weight: 500; letter-spacing: 1.3px; line-height: 18px; }
-[data-testid="stSidebar"] :is(.st-key-nav_meme, .st-key-nav_altcoin, .st-key-nav_game, .st-key-nav_sub_search, .st-key-nav_sub_kanban) { margin-bottom: 6px; }
-[data-testid="stSidebar"] :is(.st-key-nav_meme, .st-key-nav_altcoin, .st-key-nav_game, .st-key-nav_sub_search, .st-key-nav_sub_kanban) button { width: 100% !important; min-height: 47px !important; padding: 0 18px !important; border: 1px solid transparent !important; border-left: 1px solid transparent !important; border-radius: 9px !important; background: transparent !important; box-shadow: none !important; color: #ADBDCF !important; display: flex !important; align-items: center !important; justify-content: flex-start !important; gap: 16px !important; transition: background .18s ease, color .18s ease; }
-[data-testid="stSidebar"] :is(.st-key-nav_meme, .st-key-nav_altcoin, .st-key-nav_game, .st-key-nav_sub_search, .st-key-nav_sub_kanban) button p { margin: 0 !important; color: inherit !important; font-size: 14px !important; font-weight: 500 !important; line-height: 1.2 !important; text-align: left !important; white-space: nowrap; }
-[data-testid="stSidebar"] :is(.st-key-nav_meme, .st-key-nav_altcoin, .st-key-nav_game, .st-key-nav_sub_search, .st-key-nav_sub_kanban) button::before { content: ""; width: 21px; height: 21px; flex: 0 0 21px; background-color: currentColor; -webkit-mask: var(--nav-icon) center / contain no-repeat; mask: var(--nav-icon) center / contain no-repeat; }
-[data-testid="stSidebar"] :is(.st-key-nav_meme, .st-key-nav_altcoin, .st-key-nav_game, .st-key-nav_sub_search, .st-key-nav_sub_kanban) button:hover { color: #EEF5F7 !important; background: #142027 !important; }
-[data-testid="stSidebar"] :is(.st-key-nav_meme, .st-key-nav_altcoin, .st-key-nav_game, .st-key-nav_sub_search, .st-key-nav_sub_kanban) button:focus-visible { outline: 2px solid #00DCB0 !important; outline-offset: 3px; }
+[data-testid="stSidebar"] :is(.st-key-nav_pump, .st-key-nav_meme, .st-key-nav_altcoin, .st-key-nav_game, .st-key-nav_sub_search, .st-key-nav_sub_kanban) { margin-bottom: 6px; }
+[data-testid="stSidebar"] :is(.st-key-nav_pump, .st-key-nav_meme, .st-key-nav_altcoin, .st-key-nav_game, .st-key-nav_sub_search, .st-key-nav_sub_kanban) button { width: 100% !important; min-height: 47px !important; padding: 0 18px !important; border: 1px solid transparent !important; border-left: 1px solid transparent !important; border-radius: 9px !important; background: transparent !important; box-shadow: none !important; color: #ADBDCF !important; display: flex !important; align-items: center !important; justify-content: flex-start !important; gap: 16px !important; transition: background .18s ease, color .18s ease; }
+[data-testid="stSidebar"] :is(.st-key-nav_pump, .st-key-nav_meme, .st-key-nav_altcoin, .st-key-nav_game, .st-key-nav_sub_search, .st-key-nav_sub_kanban) button p { margin: 0 !important; color: inherit !important; font-size: 14px !important; font-weight: 500 !important; line-height: 1.2 !important; text-align: left !important; white-space: nowrap; }
+[data-testid="stSidebar"] :is(.st-key-nav_pump, .st-key-nav_meme, .st-key-nav_altcoin, .st-key-nav_game, .st-key-nav_sub_search, .st-key-nav_sub_kanban) button::before { content: ""; width: 21px; height: 21px; flex: 0 0 21px; background-color: currentColor; -webkit-mask: var(--nav-icon) center / contain no-repeat; mask: var(--nav-icon) center / contain no-repeat; }
+[data-testid="stSidebar"] :is(.st-key-nav_pump, .st-key-nav_meme, .st-key-nav_altcoin, .st-key-nav_game, .st-key-nav_sub_search, .st-key-nav_sub_kanban) button:hover { color: #EEF5F7 !important; background: #142027 !important; }
+[data-testid="stSidebar"] :is(.st-key-nav_pump, .st-key-nav_meme, .st-key-nav_altcoin, .st-key-nav_game, .st-key-nav_sub_search, .st-key-nav_sub_kanban) button:focus-visible { outline: 2px solid #00DCB0 !important; outline-offset: 3px; }
 
 /* Indentação elegante pros submenus */
 [data-testid="stSidebar"] :is(.st-key-nav_sub_search, .st-key-nav_sub_kanban) button { width: calc(100% - 24px) !important; margin-left: 24px !important; min-height: 40px !important; font-size: 13px !important; border-radius: 0 8px 8px 0 !important; border-left: 2px solid #1E242D !important; }
@@ -351,7 +353,11 @@ with st.sidebar:
 modulo = st.session_state.modulo_ativo
 todos_jogos = buscar_todos_jogos()
 
-if modulo == "Meme Trader":
+if modulo == "Pump Trader":
+    st.markdown("<div class='breadcrumb'>⚡ Pump Trader / <span>Em breve</span></div>", unsafe_allow_html=True)
+    st.markdown("<h1 class='main-title'>Pump Trader</h1><p class='sub-title'>Módulo de monitoramento de lançamentos e pumps em tempo real (Em construção).</p>", unsafe_allow_html=True)
+
+elif modulo == "Meme Trader":
     st.markdown("<div class='breadcrumb'>🚀 Meme Trader / <span>Em breve</span></div>", unsafe_allow_html=True)
     st.markdown("<h1 class='main-title'>Meme Trader</h1><p class='sub-title'>Módulo de rastreamento e pump de memecoins em construção.</p>", unsafe_allow_html=True)
 
