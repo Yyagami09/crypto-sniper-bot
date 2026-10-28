@@ -8,7 +8,7 @@ O admin vê **Usuários**, com lista de contas, criação, redefinição de senh
 
 Cada conta pode alterar a própria senha em **Notificações → Alterar minha senha**. Não há recuperação por e-mail porque o login atual usa nomes de usuário; o administrador redefine a senha das contas comuns. A sessão fica no servidor Streamlit e pode exigir novo login ao atualizar/fechar a página. Clientes Auth não são compartilhados entre usuários.
 
-Contas comuns acessam os dados e sinais compartilhados do Dex Trade e sua conexão pessoal. O portfólio Game Sniper existente e sua edição são exclusivos do admin. Os 44 registros existentes não foram migrados nem removidos.
+Contas comuns acessam os dados e sinais compartilhados do Dex Trade e sua conexão pessoal. O portfólio Game Sniper existente e sua edição são exclusivos do admin. Os registros existentes não foram migrados nem removidos.
 
 ## Som e notificações do navegador
 

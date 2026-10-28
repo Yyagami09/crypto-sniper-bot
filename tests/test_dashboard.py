@@ -35,3 +35,24 @@ def test_regular_user_cannot_open_admin_and_can_render_demo(tmp_path, monkeypatc
         app.run()
         assert not app.exception
         assert any('exclusivo' in e.value for e in app.error)
+
+
+def test_admin_users_and_personal_telegram_pages_render(monkeypatch):
+    monkeypatch.setenv('SUPABASE_URL', 'https://example.supabase.co')
+    monkeypatch.setenv('SUPABASE_KEY', 'sb_publishable_example')
+    profile = {'id':'admin-id','username':'admin','display_name':'Administrador','role':'admin','active':True}
+    user = {'id':'test-id','username':'teste','display_name':'Teste','role':'user','active':True}
+    def action(name, **kwargs):
+        return {'users':[profile,user]} if name=='admin_list' else {'connection':None,'last_delivery':None}
+    with patch('supabase.create_client'), patch('pump.account.ensure_session', return_value=True), patch('pump.account.action', side_effect=action):
+        app = AppTest.from_file(str(ROOT/'app.py'), default_timeout=20)
+        app.session_state['sniper_profile'] = profile
+        app.session_state['sniper_session'] = {'access_token':'admin-token'}
+        app.session_state['modulo_ativo'] = 'Usuários'
+        app.run()
+        assert not app.exception
+        assert any(m.label=='Contas' and m.value=='2' for m in app.metric)
+        app.sidebar.button(key='nav_notifications').click().run()
+        assert not app.exception
+        assert any('Telegram pessoal' in h.value for h in app.subheader)
+        assert any('Cole a chave' in t.label for t in app.text_input)
