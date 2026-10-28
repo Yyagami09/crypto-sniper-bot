@@ -37,3 +37,7 @@ A tabela `dex_early_trials` mantém episódios de primeira leitura por até sete
 A saída do radar é registrada como cobertura interrompida. Uma moeda não acompanhada não é tratada como resultado zero, fracasso ou sucesso. Não há índice de acerto calculado nem promessa de superioridade. Tokens que as fontes nunca descobriram e episódios sem preço utilizável não aparecem na amostra. A cache de episódios em execução é limitada a 300 registros/24h; registros já persistidos no banco têm retenção de sete dias.
 
 A gravação é feita somente pelo serviço de coleta. Usuários ativos podem ler os registros de mercado; não podem gravar ou alterar a preferência de terceiros. A troca de modo passa pela autenticação existente e atualiza apenas a conta do próprio usuário.
+
+## Cores e revisão do gráfico
+
+Verde, **Vale abrir o gráfico**, destaca apenas a triagem inicial atendida e recente (até dois minutos). São possíveis oportunidades para análise manual, sem sinal de compra. Azul indica observação, cinza falta de dados, amarelo movimento avançado na janela observada e vermelho restrição identificada. As demais cores ficam recolhidas para priorizar o que merece revisão. O Telegram e o navegador usam o mesmo aviso de revisão de gráfico. Os critérios do experimento não mudam por causa das cores; não há garantia de segurança ou de preço favorável.

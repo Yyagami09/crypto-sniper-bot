@@ -35,7 +35,9 @@ def test_experimental_ui_has_no_market_score_and_rollback_restores_classic(monke
         app.run();assert not app.exception
         assert any(t.label=='🧪 Comparação' for t in app.tabs)
         assert not any('100<small>' in m.value or 'ACHADO NO GARIMPO' in m.value for m in app.markdown)
-        assert any(m.label=='Triagem inicial atendida' and m.value=='1' for m in app.metric)
+        assert any(m.label=='Vale abrir o gráfico' and m.value=='1' for m in app.metric)
+        assert any('POSSÍVEL OPORTUNIDADE · REVISAR GRÁFICO' in m.value for m in app.markdown)
+        assert any('Vale abrir o gráfico' in h.value for h in app.subheader)
         app.button(key='early_rollback').click().run()
         assert not app.exception and api.call_count==1
         assert app.session_state['sniper_profile']['radar_mode']=='classic'

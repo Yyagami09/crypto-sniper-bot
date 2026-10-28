@@ -1,6 +1,7 @@
 export function notificationText(a:any){
- const labels:any={early_watch:'EXPERIMENTAL — TRIAGEM INICIAL ATENDIDA',early_changed:'EXPERIMENTAL — TRIAGEM ALTERADA',candidate:'SINAL DE MERCADO — RISCO PARCIAL',conditions_lost:'CONDIÇÕES PERDIDAS',data_gap:'DADOS INDISPONÍVEIS'};
- return `Crypto Sniper | ${labels[a.kind]||'AVISO'}\n${String(a.snapshot?.symbol||'?').slice(0,30)} | Solana\nCA: ${a.address}\n${(a.reasons||[]).join('\n').slice(0,1600)}\nConsulta: ${new Date(a.created_at*1000).toISOString()}\nTriagem parcial. Não é recomendação de compra nem previsão de lucro.\n${a.snapshot?.pair_url||''}`;
+ const labels:any={early_watch:'👀 VALE ABRIR O GRÁFICO — EXPERIMENTAL',early_changed:'EXPERIMENTAL — TRIAGEM ALTERADA',candidate:'SINAL DE MERCADO — RISCO PARCIAL',conditions_lost:'CONDIÇÕES PERDIDAS',data_gap:'DADOS INDISPONÍVEIS'};
+ const detail=a.kind==='early_watch'?'Possível oportunidade para análise manual. Verificações disponíveis atendidas em duas consultas. Abra o gráfico para avaliar o momento.\n':'';
+ return `Crypto Sniper | ${labels[a.kind]||'AVISO'}\n${String(a.snapshot?.symbol||'?').slice(0,30)} | Solana\n${detail}CA: ${a.address}\n${(a.reasons||[]).join('\n').slice(0,1600)}\nConsulta: ${new Date(a.created_at*1000).toISOString()}\nTriagem parcial. Não é recomendação de compra nem previsão de lucro.\n${a.snapshot?.pair_url||''}`;
 }
 
 export async function deliverPersonal(state:any,db:any,started:number,send:any=fetch,clock=()=>Date.now()/1000){
