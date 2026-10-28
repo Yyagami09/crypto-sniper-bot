@@ -15,6 +15,14 @@ O painel continua no Streamlit e a coleta roda no Supabase a cada **5 minutos**,
 - Registra perda das condições e lacunas de dados. Não compra ou vende tokens.
 - Compara preços observados após 15 minutos e uma hora, quando há nova consulta da mesma pool na janela prevista. Isso não representa lucro de execução.
 
+## Cards e aderência aos critérios
+
+O Dex Trade abre em cards, com três colunas no computador, agrupados em sinais confirmados, aguardando confirmação e em observação. Dados insuficientes, rejeitadas e fila ficam recolhidos. Há busca por nome/ticker/contrato, filtros por situação, ordenação por aderência/liquidez/volume/consulta e alternância para tabela.
+
+A nota é `arredondar(100 × critérios atendidos ÷ 7)`, com pesos iguais: liquidez, volume de 5 minutos, quantidade de transações, relação de quantidade de compras/vendas, variação de 5 minutos, idade da pool e faixa de avaliação (market cap ou FDV identificado). Os limites vêm das regras publicadas pelo coletor. Idade e valores são avaliados no horário da consulta, não recalculados como se fossem novas observações. Seis de sete critérios resultam em 86/100.
+
+A nota não estima lucro, segurança ou probabilidade de alta. Não modifica o coletor nem confirma alertas: 100/100 na primeira consulta continua aguardando a segunda consulta válida. Restrições, dados essenciais ausentes e consultas antigas não recebem nota numérica. Candidatas com consulta antiga passam para a área de dados insuficientes na visualização. Os detalhes mostram cada critério, valor, limite, motivos do coletor, histórico e dados brutos.
+
 ## Cobertura parcial de risco
 
 Concentração por carteira, insiders, bundles, volume artificial e retirada de liquidez não são auditados. Não há nota de segurança ou probabilidade de lucro. A relação de compras/vendas usa **quantidade de transações**, não valores financeiros comprados e vendidos.

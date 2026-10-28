@@ -6,21 +6,12 @@ from zoneinfo import ZoneInfo
 import streamlit as st
 from dotenv import load_dotenv
 
-from pump.alerts import LABELS, alert_text
+from pump.alerts import LABELS
 from pump.config import ROOT, load_rules, settings
 from pump.storage import make_store, PublicMarketStore, StorageError
 
-STATUS = {'candidate': 'Sinal de mercado • risco parcial', 'confirming': 'Aguardando confirmação',
-          'blocked': 'Rejeitada pelos critérios', 'watch': 'Em observação',
-          'incomplete': 'Dados insuficientes', 'queued': 'Na fila'}
-
-
 def stamp(value):
     return datetime.fromtimestamp(value, ZoneInfo('America/Sao_Paulo')).strftime('%d/%m %H:%M:%S') if value else '—'
-
-
-def money(n):
-    return '—' if n is None else f'US$ {n:,.0f}'
 
 
 def render():
@@ -61,7 +52,7 @@ def _body(store, rules, demo, telegram_configured):
         store.access_token = st.session_state.sniper_session['access_token']
     try:
         state = store.read()
-    except StorageError as exc:
+    except StorageError:
         st.warning('O feed gratuito está temporariamente indisponível.')
         st.info('O feed de mercado admite somente leitura com a chave Supabase já configurada. As tabelas privadas e o Vault continuam protegidos.')
         st.link_button('Ver instruções de ativação', 'https://github.com/Yyagami09/crypto-sniper-bot/blob/main/RADAR_GRATUITO.md')
@@ -118,47 +109,13 @@ def _body(store, rules, demo, telegram_configured):
             with st.expander('Dados no momento do alerta'):
                 st.json(alert['snapshot'])
     with radar_tab:
-        status_filter = st.selectbox('Exibir', ['Todos', *STATUS.values()], key='pump_filter')
-        selected = [t for t in tokens if status_filter == 'Todos' or STATUS.get(t.get('status')) == status_filter]
-        priority = {'candidate':0,'confirming':1,'watch':2,'blocked':3,'incomplete':4,'queued':5}
-        selected.sort(key=lambda t:(priority.get(t.get('status'), 6), -t.get('last_checked', 0)))
-        if not selected:
-            st.info('Nenhuma moeda nesta seleção. A descoberta gratuita cobre uma amostra de pools novas e perfis recentes, que podem ser promocionais.')
-        if selected:
-            rows = []
-            for token in selected:
-                snap = token.get('snapshot') or {}
-                rows.append({'Moeda':snap.get('symbol', '?'), 'Situação':STATUS.get(token.get('status'), 'Na fila'),
-                    'Liquidez (USD)':snap.get('liquidity'), 'Volume 5min (USD)':snap.get('volume_5m'),
-                    'Variação 5min (%)':snap.get('change_5m'), 'Consulta':stamp(snap.get('observed_at'))})
-            st.dataframe(rows, hide_index=True, use_container_width=True)
-            st.caption('Abra os detalhes abaixo para ver os critérios, a origem e as verificações pendentes.')
-        for token in selected[:60]:
-            s = token.get('snapshot') or {}
-            with st.expander(f"{s.get('symbol', token['address'][:8])} · {STATUS.get(token.get('status'), 'Na fila')}"):
-                st.caption(f"Consulta: {stamp(s.get('observed_at'))} · Descoberta: {stamp(token['first_seen'])}")
-                if s.get('observed_at') and now-s['observed_at'] > run.get('rules', {}).get('confirmation_max_seconds', 1200):
-                    st.warning('Consulta antiga. Aguarde nova avaliação.')
-                m1,m2,m3 = st.columns(3)
-                m1.metric('Liquidez', money(s.get('liquidity')))
-                m2.metric(s.get('valuation_type', 'Market cap'), money(s.get('valuation', s.get('market_cap'))))
-                m3.metric('Volume em 5 min', money(s.get('volume_5m')))
-                for reason in token.get('reasons', []):
-                    st.text('• ' + reason)
-                st.code(token['address'], language=None)
-                if not demo:
-                    st.link_button('Abrir gráfico', s.get('pair_url') or 'https://dexscreener.com/solana/' + token['address'], key='open_'+token['address'])
-                history = token.get('history', [])
-                if len(history) > 1:
-                    import pandas as pd
-                    frame = pd.DataFrame(history)
-                    frame['Consulta'] = pd.to_datetime(frame['observed_at'], unit='s', utc=True).dt.tz_convert('America/Sao_Paulo')
-                    st.line_chart(frame.set_index('Consulta')[['price']], y_label='Preço consultado (USD)')
-                st.json(s, expanded=False)
+        from pump.radar_cards import render_radar
+        render_radar(tokens, run.get('rules') or {}, now, demo)
     with config_tab:
         st.write('Os limites iniciais são hipóteses de triagem. Ainda não foram calibrados para demonstrar rentabilidade.')
         from dataclasses import asdict
         st.json(run.get('rules') or asdict(rules))
+        st.write('Aderência aos critérios: cada um dos sete filtros de mercado vale 1/7 da nota. Dados essenciais ausentes, consultas antigas ou restrições deixam a pontuação pendente. A nota não estima lucro ou segurança e não altera o motor de alertas.')
         st.write('Duas consultas confirmam o sinal. A janela móvel de 5 minutos pode se sobrepor; isso não representa duas evidências independentes.')
         st.write('Fontes: DEX Screener, GeckoTerminal e RPC público da Solana. Ciclos de 5 minutos, até 30 moedas em acompanhamento. APIs gratuitas podem atrasar, limitar ou interromper respostas.')
         st.write('Os filtros usam volume em USD, quantidade de compras/vendas, variação, liquidez, idade da pool e permissões básicas do token. A relação de contagem de compras/vendas não é uma relação de valores financeiros. Extensões não reconhecidas ficam pendentes. FDV é identificado e não tratado como market cap.')

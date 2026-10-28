@@ -48,8 +48,20 @@ def seed_demo(store, rules):
             s['observed_at'] = now-60
             apply_snapshot(state, token, s, rules, now-60, demo=True)
             apply_snapshot(state, token, api.snapshot(address), rules, now, demo=True)
+            # Synthetic free-market fields for the card preview. These counts
+            # are invented examples, never inferred from traded USD amounts.
+            token['snapshot'].update(profile='free-market-v1', pool_created_at=now-7200,
+                valuation=1100000,valuation_type='Market cap',buy_count_5m=20,sell_count_5m=10,
+                extensions_review=False)
+            if i==2:
+                token['snapshot']['freeze_disabled']=None
         state['run'] = {'demo': True, 'status': 'ok', 'checked': 4, 'errors': 0,
-                        'started_at': now, 'completed_at': now}
+                        'started_at': now, 'completed_at': now,
+                        'rules': {'profile':'free-market-v1','min_liquidity':25000,
+                            'min_volume_5m':5000,'min_transactions_5m':10,'min_buy_sell_count_ratio':1.2,
+                            'min_change_5m':2,'max_change_5m':40,'min_pool_age_minutes':15,
+                            'max_pool_age_minutes':10080,'min_valuation':100000,'max_valuation':10000000,
+                            'confirmation_max_seconds':1200}}
         store.commit(owner, state)
         return True
     finally:
