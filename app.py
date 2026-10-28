@@ -13,15 +13,20 @@ st.set_page_config(page_title="Crypto Sniper", layout="wide", initial_sidebar_st
 # --- Conexão Segura com Supabase ---
 @st.cache_resource
 def init_connection():
-    url = st.secrets["SUPABASE_URL"]
-    key = st.secrets["SUPABASE_KEY"]
-    return create_client(url, key)
+    import os
+    try:
+        secrets = dict(st.secrets)
+    except Exception:
+        secrets = {}
+    url = os.getenv("SUPABASE_URL") or secrets.get("SUPABASE_URL")
+    key = os.getenv("SUPABASE_KEY") or secrets.get("SUPABASE_KEY")
+    return create_client(url, key) if url and key else None
 
 supabase: Client = init_connection()
 
 # --- Controle de Estado de Navegação e Automação ---
 if 'modulo_ativo' not in st.session_state:
-    st.session_state.modulo_ativo = "Game Sniper"
+    st.session_state.modulo_ativo = "Pump Trader"
 if 'pagina' not in st.session_state:
     st.session_state.pagina = "Buscar projetos"
 if 'mostrar_form_manual' not in st.session_state:
@@ -351,11 +356,16 @@ with st.sidebar:
         st.markdown('''<div class="sniper-online" role="status"><span class="sniper-online-label"><span class="sniper-online-dot" aria-hidden="true"></span><span>Sistema online</span></span><span class="sniper-online-chevron" aria-hidden="true">›</span></div>''', unsafe_allow_html=True)
 
 modulo = st.session_state.modulo_ativo
-todos_jogos = buscar_todos_jogos()
+todos_jogos = []
+if modulo == "Game Sniper":
+    if supabase is None:
+        st.info("Configure SUPABASE_URL e SUPABASE_KEY para abrir o Game Sniper.")
+        st.stop()
+    todos_jogos = buscar_todos_jogos()
 
 if modulo == "Pump Trader":
-    st.markdown("<div class='breadcrumb'>⚡ Pump Trader / <span>Em breve</span></div>", unsafe_allow_html=True)
-    st.markdown("<h1 class='main-title'>Pump Trader</h1><p class='sub-title'>Módulo de monitoramento de lançamentos e pumps em tempo real (Em construção).</p>", unsafe_allow_html=True)
+    from pump.dashboard import render
+    render()
 
 elif modulo == "Meme Trader":
     st.markdown("<div class='breadcrumb'>🚀 Meme Trader / <span>Em breve</span></div>", unsafe_allow_html=True)
@@ -698,3 +708,4 @@ elif modulo == "Game Sniper":
         </script>
         """
         components.html(js_kanban, height=0, width=0)
+

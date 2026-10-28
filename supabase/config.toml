@@ -1,0 +1,3 @@
+[functions.pump-radar]
+# Custom machine-to-machine authentication, validated inside the function.
+verify_jwt = false
