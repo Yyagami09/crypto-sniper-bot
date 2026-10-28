@@ -25,7 +25,7 @@ def money(n):
 
 def render():
     load_dotenv(ROOT / '.env')
-    st.markdown("<div class='breadcrumb'>⚡ Pump Trader / <span>Radar gratuito</span></div>", unsafe_allow_html=True)
+    st.markdown("<div class='breadcrumb'>🚀 Dex Trade / <span>Radar gratuito</span></div>", unsafe_allow_html=True)
     st.markdown("<h1 class='main-title'>Seu radar de memecoins</h1><p class='sub-title'>Descoberta automática com fontes públicas. Sem depósito, sem chave GMGN e sem ordens de compra.</p>", unsafe_allow_html=True)
     demo = st.toggle('Visualizar demonstração com dados simulados', key='pump_demo')
     try:

@@ -26,7 +26,9 @@ supabase: Client = init_connection()
 
 # --- Controle de Estado de Navegação e Automação ---
 if 'modulo_ativo' not in st.session_state:
-    st.session_state.modulo_ativo = "Pump Trader"
+    st.session_state.modulo_ativo = "Dex Trade"
+if st.session_state.modulo_ativo == "Meme Trader":
+    st.session_state.modulo_ativo = "Dex Trade"
 if 'pagina' not in st.session_state:
     st.session_state.pagina = "Buscar projetos"
 if 'mostrar_form_manual' not in st.session_state:
@@ -262,7 +264,7 @@ def nav_sub(destino):
 # Configuração de Menus
 nav_items_main = [
     ("nav_pump", "Pump Trader", "pump", "modulo_ativo"),
-    ("nav_meme", "Meme Trader", "meme", "modulo_ativo"),
+    ("nav_meme", "Dex Trade", "meme", "modulo_ativo"),
     ("nav_altcoin", "Altcoin Trader", "crypto", "modulo_ativo"),
     ("nav_game", "Game Sniper", "game", "modulo_ativo"),
 ]
@@ -364,12 +366,12 @@ if modulo == "Game Sniper":
     todos_jogos = buscar_todos_jogos()
 
 if modulo == "Pump Trader":
+    st.markdown("<div class='breadcrumb'>⚡ Pump Trader / <span>Em breve</span></div>", unsafe_allow_html=True)
+    st.markdown("<h1 class='main-title'>Pump Trader</h1><p class='sub-title'>Módulo dedicado aos lançamentos na Pump.fun (Em construção).</p>", unsafe_allow_html=True)
+
+elif modulo == "Dex Trade":
     from pump.dashboard import render
     render()
-
-elif modulo == "Meme Trader":
-    st.markdown("<div class='breadcrumb'>🚀 Meme Trader / <span>Em breve</span></div>", unsafe_allow_html=True)
-    st.markdown("<h1 class='main-title'>Meme Trader</h1><p class='sub-title'>Módulo de rastreamento e pump de memecoins em construção.</p>", unsafe_allow_html=True)
 
 elif modulo == "Altcoin Trader":
     st.markdown("<div class='breadcrumb'>📊 Altcoin Trader / <span>Em breve</span></div>", unsafe_allow_html=True)

@@ -1,6 +1,6 @@
 # Radar gratuito — já ativado
 
-O Pump Trader usa **DEX Screener + GeckoTerminal + RPC público da Solana**. Não requer API Key de mercado, carteira, depósito ou saldo mínimo. A coleta GMGN está desativada nesta instalação.
+O Dex Trade usa **DEX Screener + GeckoTerminal + RPC público da Solana**. Não requer API Key de mercado, carteira, depósito ou saldo mínimo. A coleta GMGN está desativada nesta instalação.
 
 O painel continua no Streamlit e a coleta roda no Supabase a cada **5 minutos**, mesmo com a aba fechada. Nenhuma nova assinatura foi contratada. O funcionamento depende das cotas gratuitas e disponibilidade dos provedores, que podem mudar ou limitar respostas.
 
