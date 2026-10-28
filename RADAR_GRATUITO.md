@@ -93,3 +93,15 @@ A partir de 28/10/2026, mercado, permissões, LP e saldos da amostra de detentor
 A confirmação conserva um mínimo de quatro minutos entre a primeira observação válida e a confirmação, com consultas intermediárias válidas. Uma falha reinicia a janela. Sinais já confirmados continuam ativos enquanto as condições se mantêm e as consultas não têm lacunas grandes. A janela de slow rug também permanece em 12–30 minutos, amostrada a cada quatro minutos; não é reduzida pela coleta rápida.
 
 O RugCheck usa cache de até 30 minutos, teto de dez requisições em janela móvel de cinco minutos e até quatro por execução. Falhas recebem espera progressiva para dar vez aos demais tokens. Relatório vencido ou ausente mantém a avaliação pendente. O painel informa a duração de cada coleta. Erros gerais aguardam dois minutos antes de tentar novamente. Telegram prioriza eventos novos e repete falhas transitórias a partir de um minuto, respeitando `retry_after` no envio pessoal. Permanecem até três tentativas e expiração de 30 minutos.
+
+### Redes no Dex Sniper
+
+O seletor **Rede blockchain** abre feeds separados de Solana, Robinhood Chain, Ethereum, Base, BNB Chain, Arbitrum, Polygon, Avalanche e Optimism. Esta é a lista inicial integrada; não representa todas as redes do DEX Screener. Os IDs são explícitos e correspondem às redes dos provedores. Cada usuário pode navegar sem mudar a visualização dos demais.
+
+Solana mantém os critérios, a triagem de risco, as confirmações, o histórico de 24 horas e as notificações existentes. As demais redes têm **observação de mercado**, com preço, volume, liquidez, transações, avaliação e contagem dos sete critérios. Não têm triagem de LP, permissões, honeypot, grandes carteiras ou slow rug, nem confirmação dourada, histórico de achados ou alertas automáticos. Os limites de mercado são inicialmente os mesmos da Solana e ainda não foram calibrados por rede.
+
+A coleta adicional ocorre no servidor, depois da publicação primária e do envio de alertas da Solana. São até 15 tokens por rede adicional, com descoberta por pools novas e perfis recentes; isso não cobre todos os tokens de cada rede. As consultas usam lotes pequenos, timeout de 3 segundos por chamada e orçamento global para evitar concorrência com a varredura seguinte. Uma fonte lenta pode adiar uma rede; a tela informa horário, falhas e leituras antigas. O seletor muda a visualização, não desativa a coleta das outras redes. Telegram continua seguindo os sinais da Solana, independentemente da rede que está aberta na tela.
+
+Robinhood usa a rede principal (`robinhood` no DEX Screener/GeckoTerminal), não a testnet. Tokens têm endereços EVM de 20 bytes; IDs de pools de 32 bytes, usados por protocolos como Uniswap v4, também são aceitos para o gráfico. A identidade inclui a rede para evitar misturar contratos iguais em blockchains diferentes.
+
+O front-end consulta somente os campos do feed Solana ou somente o feed da rede escolhida, em vez de baixar todas as redes a cada atualização. Dados adicionais são publicados pelo mesmo processo autenticado, com as políticas de acesso existentes.

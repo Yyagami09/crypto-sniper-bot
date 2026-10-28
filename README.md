@@ -1,6 +1,6 @@
 # Crypto Sniper
 
-Painel Streamlit com Game Sniper e radar gratuito de mercado no módulo Dex Trade.
+Painel Streamlit com Game Sniper e radar gratuito de mercado no módulo Dex Sniper.
 
 O radar usa DEX Screener, GeckoTerminal e RPC público da Solana. Roda a cada minuto no Supabase, independente do navegador. Não requer depósito, carteira ou chave GMGN. Veja funcionamento e Telegram opcional em [RADAR_GRATUITO.md](RADAR_GRATUITO.md).
 
@@ -16,8 +16,10 @@ Use Python 3.12, instale `requirements-dev.txt` e execute:
 
 ```bash
 python -m pytest -q
-node --test tests/core.test.mjs tests/free-core.test.mjs tests/notifications.test.mjs tests/risk-whales.test.mjs
+node --test tests/core.test.mjs tests/free-core.test.mjs tests/notifications.test.mjs tests/risk-whales.test.mjs tests/networks.test.mjs
 streamlit run app.py
 ```
 
-O teste TypeScript usa Node.js 24. A demonstração no Dex Trade é identificada e usa dados fictícios isolados do banco real. Para executar localmente, configure Supabase e entre com uma conta criada pelo administrador.
+O teste TypeScript usa Node.js 24. A demonstração no Dex Sniper é identificada e usa dados fictícios isolados do banco real. Para executar localmente, configure Supabase e entre com uma conta criada pelo administrador.
+
+O seletor de redes do Dex Sniper inclui Robinhood Chain e outras sete redes além da Solana. Fora da Solana, o modo é de observação de mercado, sem confirmação ou alertas automáticos até adaptação dos verificadores de risco. Veja as diferenças em [RADAR_GRATUITO.md](RADAR_GRATUITO.md#redes-no-dex-sniper).

@@ -16,7 +16,7 @@ def stamp(value):
 
 def render():
     load_dotenv(ROOT / '.env')
-    st.markdown("<div class='breadcrumb'>🚀 Dex Trade / <span>Radar gratuito</span></div>", unsafe_allow_html=True)
+    st.markdown("<div class='breadcrumb'>🚀 Dex Sniper / <span>Radar gratuito</span></div>", unsafe_allow_html=True)
     st.markdown("<h1 class='main-title'>Seu radar de memecoins</h1><p class='sub-title'>Descoberta automática com fontes públicas. Sem depósito, sem chave GMGN e sem ordens de compra.</p>", unsafe_allow_html=True)
     demo = st.toggle('Visualizar demonstração com dados simulados', key='pump_demo')
     try:
@@ -38,18 +38,24 @@ def render():
             from pump.demo import seed_demo
             if not seed_demo(store, rules):
                 st.info('Aguarde a varredura de demonstração terminar.')
+    from pump.networks import NETWORKS
+    chain = 'solana' if demo else st.selectbox('Rede blockchain',list(NETWORKS),format_func=NETWORKS.get,key='dex_network')
     st.caption('O painel atualiza a cada 15 segundos. A coleta automática ocorre a cada 1 minuto, mesmo com a aba fechada.')
-    _body(store, rules, demo, bool(config.get('TELEGRAM_BOT_TOKEN') and config.get('TELEGRAM_CHAT_ID')))
+    _body(store, rules, demo, bool(config.get('TELEGRAM_BOT_TOKEN') and config.get('TELEGRAM_CHAT_ID')), chain)
 
 
 @st.fragment(run_every='15s')
-def _body(store, rules, demo, telegram_configured):
+def _body(store, rules, demo, telegram_configured, chain='solana'):
     from pump.account import ensure_session
     if not ensure_session():
         st.warning('Entre novamente para continuar acompanhando o radar.')
         return
     if not demo:
         store.access_token = st.session_state.sniper_session['access_token']
+    if not demo and chain!='solana':
+        from pump.networks import render_observation
+        render_observation(store,chain)
+        return
     try:
         state = store.read()
     except StorageError:

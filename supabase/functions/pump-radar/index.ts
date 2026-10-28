@@ -2,6 +2,7 @@ import {n,validAddress,event} from './core.ts';
 import {freeRules,fromDex,applyFree,updateOutcomes,publicFeed} from './free-core.ts';
 import {deliverPersonal} from './notifications.ts';
 import {enrichRisks} from './risk.ts';
+import {collectNetworks} from './networks.ts';
 const now=()=>Date.now()/1000;
 const pause=(ms:number)=>new Promise(r=>setTimeout(r,ms));
 const respond=(data:any,status=200)=>Response.json(data,{status});
@@ -40,6 +41,7 @@ Deno.serve(async(req)=>{
   state.run={started_at:started,status:'running',demo:false,rules:freeRules,checked:0,errors:0,
    source_errors:[],engine:'supabase-free-market',telegram_configured:!!(cfg.telegram_token&&cfg.telegram_chat)};
   await commit();
+  let profiles:any[]=[];
   const get=async(url:string,timeout=10000)=>{
    const r=await fetch(url,{headers:{Accept:'application/json'},signal:AbortSignal.timeout(timeout)});
    if(!r.ok)throw new Error('public_source_unavailable');return await r.json();
@@ -62,6 +64,7 @@ Deno.serve(async(req)=>{
     if(discovery[1].status!=='fulfilled')throw new Error('discovery');
     const j=discovery[1].value;
     if(!Array.isArray(j))throw new Error('schema');
+    profiles=j;
     for(const x of j)if(x.chainId==='solana')discovered.push({address:x.tokenAddress,source:'DEX Screener — perfil recente (pode ser promocional)',liquidity:null});
    }catch{state.run.source_errors.push('DEX Screener: perfis indisponíveis');}
    for(const [a,t] of Object.entries<any>(state.tokens))if(now()-t.first_seen>86400&&t.status!=='candidate')delete state.tokens[a];
@@ -132,7 +135,9 @@ Deno.serve(async(req)=>{
    await commit();await pause(1100);
   }
   try{await deliverPersonal(state,db,started);}catch{/* Delivery retries next cycle; collection remains available. */}
-  await commit();return respond({status:state.run.status,checked:state.run.checked,public_feed:true});
+  await commit();
+  try{await collectNetworks(state,get,profiles,now,started,freeRules);await commit();await publish();}catch{/* Secondary observations cannot delay or invalidate the published Solana signals. */}
+  return respond({status:state.run.status,checked:state.run.checked,public_feed:true});
  }catch{return respond({error:'radar_unavailable'},503);}
  finally{if(acquired)try{await db('rpc/pump_release',{p_owner:owner});}catch{/* expires */}}
 });

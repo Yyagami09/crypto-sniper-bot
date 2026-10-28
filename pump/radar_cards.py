@@ -57,14 +57,19 @@ def age_label(age):
 
 def chart_url(token):
     s = token.get('snapshot') or {}
+    from pump.networks import NETWORKS
+    chain = s.get('chain_id','solana')
+    if chain not in NETWORKS:
+        return None
+    pattern = r'[1-9A-HJ-NP-Za-km-z]{32,44}' if chain=='solana' else r'0x(?:[0-9a-fA-F]{40}|[0-9a-fA-F]{64})'
     for address in (s.get('pair_address'), token.get('address')):
-        if isinstance(address, str) and re.fullmatch(r'[1-9A-HJ-NP-Za-km-z]{32,44}', address):
-            return 'https://dexscreener.com/solana/'+address
+        if isinstance(address,str) and re.fullmatch(pattern,address):
+            return 'https://dexscreener.com/'+chain+'/'+address
     return None
 
 
 def confirmed_find(token, model):
-    return token.get('status')=='candidate' and model['score']==100 and not model['issue'] and not model['stale']
+    return (token.get('snapshot') or {}).get('chain_id','solana')=='solana' and token.get('status')=='candidate' and model['score']==100 and not model['issue'] and not model['stale']
 
 
 def card_markup(token, model, historical=False):
@@ -75,11 +80,16 @@ def card_markup(token, model, historical=False):
     symbol = html.escape(str(s.get('symbol') or token['address'][:8]))
     name = html.escape(str(s.get('name') or 'Nome indisponível'))
     badge_class = 'incomplete' if model['stale'] else status
-    subtitle = html.escape('Solana · '+age_label(model['age_minutes']))
+    from pump.networks import NETWORKS
+    chain = s.get('chain_id','solana')
+    observation = chain!='solana'
+    subtitle = html.escape(NETWORKS.get(chain,chain)+' · '+age_label(model['age_minutes']))
     risk = s.get('risk') or {}
     risk_status = risk.get('status') if risk.get('status') in ('blocked','reviewed') else 'pending'
     risk_label = {'blocked':'⛔ Risco crítico ou atividade atípica · sinal bloqueado','pending':'⏳ Camada de risco pendente · sinal retido',
                   'reviewed':'Triagem de risco parcial concluída · venda não simulada'}[risk_status]
+    if observation:
+        risk_label='Somente mercado · risco, carteiras e slow rug não verificados nesta rede'
     if risk.get('slow_rug',{}).get('status')=='warning':
         risk_label='⛔ Possível retirada gradual de liquidez · sinal retido'
     if historical and not risk:
@@ -122,6 +132,8 @@ def card_markup(token, model, historical=False):
     if whales.get('gradual_reductions'):
         whale_text += f' · redução gradual em {int(whales["gradual_reductions"])} carteira(s)'
     whale_markup = f'<div class="dex-whales">{html.escape(whale_text)}<div class="dex-caption">Indicador complementar · não altera a nota</div></div>'
+    if observation:
+        whale_markup = ''
     score_label = 'Aderência na confirmação' if historical else 'Aderência aos critérios'
     time_label = 'Dados na confirmação' if historical else 'Consulta'
     celebration = '<div class="dex-find"><span class="dex-find-icon" aria-hidden="true">⛏️</span><div><div class="dex-find-title">ACHADO NO GARIMPO</div><div class="dex-find-subtitle">7/7 critérios · duas consultas válidas</div></div><span class="dex-gold-sparks" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span></div>' if confirmed_find(token,model) else ''

@@ -1,5 +1,6 @@
 import {n,validAddress,event} from './core.ts';
 import {riskRules} from './risk.ts';
+import {publicNetworks} from './networks.ts';
 export const freeRules={profile:'free-market-v1',interval_seconds:60,max_tracked:30,
  min_liquidity:25000,min_valuation:100000,max_valuation:10000000,min_pool_age_minutes:15,
  max_pool_age_minutes:10080,min_volume_5m:5000,min_transactions_5m:10,
@@ -23,7 +24,7 @@ export function fromDex(a:string,p:any,account:any,now:number){
  if(!p||p.chainId!=='solana'||p.baseToken?.address!==a||!validAddress(a)||!validAddress(p.pairAddress))throw new Error('invalid_pair');
  const check=mintCheck(account),price=nn(p.priceUsd),mc=nn(p.marketCap),fdv=nn(p.fdv);
  const created=n(p.pairCreatedAt);
- return {address:a,symbol:String(p.baseToken.symbol||'?').slice(0,30),name:String(p.baseToken.name||'').slice(0,100),
+ return {chain_id:'solana',address:a,symbol:String(p.baseToken.symbol||'?').slice(0,30),name:String(p.baseToken.name||'').slice(0,100),
  profile:'free-market-v1',pair_address:p.pairAddress,pair_url:`https://dexscreener.com/solana/${p.pairAddress}`,
  observed_at:now,price:price&&price>0?price:null,liquidity:nn(p.liquidity?.usd),
  market_cap:mc&&mc>0?mc:null,fdv:fdv&&fdv>0?fdv:null,
@@ -94,7 +95,7 @@ export function updateOutcomes(state:any,now:number){
 // This feed contains public market data only; private state and delivery details stay private.
 export function publicFeed(state:any){
  const run=state.run||{};
- const snapshot=(s:any)=>Object.fromEntries(['address','symbol','name','profile','pair_address','pair_url',
+ const snapshot=(s:any)=>Object.fromEntries(['chain_id','address','symbol','name','profile','pair_address','pair_url',
   'observed_at','price','liquidity','market_cap','fdv','valuation','valuation_type','pool_created_at',
   'volume_5m','buy_count_5m','sell_count_5m','change_5m','mint_disabled','freeze_disabled',
   'extensions_review','coverage','sources','risk','whales'].map(k=>[k,s[k]]));
@@ -105,7 +106,7 @@ export function publicFeed(state:any){
    snapshot:snapshot(t.snapshot),reasons:t.reasons,missing:t.missing,
    history:(t.history||[]).map((h:any)=>({observed_at:h.observed_at,price:h.price,liquidity:h.liquidity,volume_5m:h.volume_5m}))};
  }
- return {version:2,profile:'free-market-v1',tokens,alerts:(state.alerts||[])
+ return {version:3,profile:'free-market-v1',networks:publicNetworks(state,freeRules),tokens,alerts:(state.alerts||[])
   .filter((a:any)=>a.snapshot?.profile==='free-market-v1').slice(-100)
   .map((a:any)=>({id:a.id,address:a.address,kind:a.kind,created_at:a.created_at,reasons:a.reasons,
     snapshot:snapshot(a.snapshot),observations:a.observations||{},delivery:'panel'})),

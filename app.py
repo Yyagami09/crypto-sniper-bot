@@ -23,9 +23,9 @@ def init_connection(access_token):
 
 # --- Controle de Estado de Navegação e Automação ---
 if 'modulo_ativo' not in st.session_state:
-    st.session_state.modulo_ativo = "Dex Trade"
-if st.session_state.modulo_ativo == "Meme Trader":
-    st.session_state.modulo_ativo = "Dex Trade"
+    st.session_state.modulo_ativo = "Dex Sniper"
+if st.session_state.modulo_ativo in ("Meme Trader", "Dex Trade"):
+    st.session_state.modulo_ativo = "Dex Sniper"
 if 'pagina' not in st.session_state:
     st.session_state.pagina = "Buscar projetos"
 if 'mostrar_form_manual' not in st.session_state:
@@ -266,7 +266,7 @@ def nav_sub(destino):
 # Configuração de Menus
 nav_items_main = [
     ("nav_pump", "Pump Trader", "pump", "modulo_ativo"),
-    ("nav_meme", "Dex Trade", "meme", "modulo_ativo"),
+    ("nav_meme", "Dex Sniper", "meme", "modulo_ativo"),
     ("nav_altcoin", "Altcoin Trader", "crypto", "modulo_ativo"),
     ("nav_game", "Game Sniper", "game", "modulo_ativo"),
 ]
@@ -384,7 +384,7 @@ if modulo == 'Usuários':
 
 elif modulo == 'Notificações':
     st.title('Notificações')
-    st.caption('O som e os avisos do navegador são ativados no Dex Trade. O Telegram funciona com o painel fechado.')
+    st.caption('O som e os avisos do navegador são ativados no Dex Sniper. O Telegram funciona com o painel fechado.')
     from pump.telegram_ui import render_telegram_connection
     render_telegram_connection()
 
@@ -392,7 +392,7 @@ elif modulo == "Pump Trader":
     st.markdown("<div class='breadcrumb'>⚡ Pump Trader / <span>Em breve</span></div>", unsafe_allow_html=True)
     st.markdown("<h1 class='main-title'>Pump Trader</h1><p class='sub-title'>Módulo dedicado aos lançamentos na Pump.fun (Em construção).</p>", unsafe_allow_html=True)
 
-elif modulo == "Dex Trade":
+elif modulo == "Dex Sniper":
     from pump.dashboard import render
     render()
 

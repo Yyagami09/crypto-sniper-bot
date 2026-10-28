@@ -102,10 +102,19 @@ class PublicMarketStore(SupabaseStore):
         super().__init__(url, key, access_token)
 
     def read(self):
-        rows = self.request('pump_market_feed?id=eq.public&select=payload')
+        rows = self.request('pump_market_feed?id=eq.public&select=tokens:payload->tokens,alerts:payload->alerts,run:payload->run,backoff_until:payload->backoff_until')
         if not isinstance(rows, list) or len(rows) != 1:
             raise StorageError('Feed de mercado aguardando publicação')
-        return rows[0]['payload']
+        return rows[0].get('payload', rows[0])
+
+    def read_network(self, chain):
+        from pump.networks import NETWORKS
+        if chain not in NETWORKS or chain=='solana':
+            raise StorageError('Rede não suportada')
+        rows = self.request(f'pump_market_feed?id=eq.public&select=payload:payload->networks->{chain}')
+        if not isinstance(rows, list) or len(rows)!=1:
+            raise StorageError('Feed desta rede indisponível')
+        return rows[0].get('payload')
 
     def read_history(self, now, page=0, size=30):
         since = datetime.fromtimestamp(now-86400, timezone.utc).isoformat().replace('+00:00','Z')
