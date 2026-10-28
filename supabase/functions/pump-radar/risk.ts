@@ -3,7 +3,7 @@ import {whaleTargets,observeWhales,isPoolHolder} from './whales.ts';
 import {liquidityTrend} from './trends.ts';
 
 export const riskRules={version:'risk-v1',min_lp_locked_pct:90,max_top10_ex_pool_pct:50,
- max_creator_lp_pct:10,max_volume_liquidity_5m:10,report_ttl_seconds:1800,reports_per_cycle:10};
+ max_creator_lp_pct:10,max_volume_liquidity_5m:10,report_ttl_seconds:1800,reports_per_cycle:4,reports_per_5min:10,report_budget_seconds:20};
 const rawSupply=(x:any)=>typeof x==='string'&&/^\d+$/.test(x)?x:Number.isSafeInteger(x)&&x>=0?String(x):null;
 const programs=['TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA','TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'];
 const pct=(x:any)=>{const v=n(x);return v!==null&&v>=0&&v<=100?v:null;};
@@ -90,26 +90,35 @@ export function assessRisk(s:any,cached:any,accounts:Map<string,any>,now:number)
  return out;
 }
 
-export async function enrichRisks(snapshots:any[],state:any,get:any,rpc:any,clock:()=>number,started:number){
+export async function enrichRisks(snapshots:any[],state:any,get:any,rpc:any,clock:()=>number,started:number,wait=(ms:number)=>new Promise(resolve=>setTimeout(resolve,ms))){
  state.risk_reports||={};
  const live=new Set(snapshots.map(s=>s.address));
  for(const a of Object.keys(state.risk_reports))if(!live.has(a))delete state.risk_reports[a];
- // Requests are serialized and bounded to stay conservative on the free API.
- const ordered=[...snapshots].sort((a,b)=>(b.volume_5m||0)-(a.volume_5m||0));
- let attempted=0;
+ // A rolling budget keeps the former report quota despite faster market scans.
+ // Failed/missing-pool reports back off, so unavailable high-volume tokens cannot
+ // monopolize every cycle. Oldest attempted reports receive a fair next turn.
+ state.risk_attempts||={};
+ for(const a of Object.keys(state.risk_attempts))if(!live.has(a))delete state.risk_attempts[a];
+ state.risk_request_times=(state.risk_request_times||[]).filter((at:number)=>at>clock()-300&&at<=clock());
+ const ordered=[...snapshots].sort((a,b)=>(state.risk_attempts[a.address]?.at||0)-(state.risk_attempts[b.address]?.at||0)||(b.volume_5m||0)-(a.volume_5m||0));
+ const riskStarted=clock();let attempted=0;
  for(const s of ordered){
-  const old=state.risk_reports[s.address];
+  const old=state.risk_reports[s.address],last=state.risk_attempts[s.address];
   const needs=!old||clock()-old.fetched_at>riskRules.report_ttl_seconds||!old.report.markets.some((m:any)=>m.address===s.pair_address);
-  if(!needs||attempted>=riskRules.reports_per_cycle||clock()-started>65)continue;
-  attempted++;
-  try{const report=cleanReport(await get(`https://api.rugcheck.xyz/v1/tokens/${s.address}/report`),s.address);state.risk_reports[s.address]={fetched_at:clock(),report};}catch{/* Remains pending, never becomes a pass on a timeout. */}
-  await new Promise(resolve=>setTimeout(resolve,700));
+  if(!needs||last?.next_at>clock())continue;
+  if(attempted>=riskRules.reports_per_cycle||state.risk_request_times.length>=riskRules.reports_per_5min||clock()-riskStarted>=riskRules.report_budget_seconds||clock()-started>40)break;
+  attempted++;state.risk_request_times.push(clock());
+  let matched=false;
+  try{const report=cleanReport(await get(`https://api.rugcheck.xyz/v1/tokens/${s.address}/report`),s.address);state.risk_reports[s.address]={fetched_at:clock(),report};matched=report.markets.some((m:any)=>m.address===s.pair_address);}catch{/* Pending remains pending; cache expiry is never extended by failure. */}
+  const failures=matched?0:(last?.failures||0)+1;
+  state.risk_attempts[s.address]={at:clock(),failures,next_at:clock()+(matched?0:Math.min(1800,300*2**Math.min(failures-1,3)))};
+  if(attempted<riskRules.reports_per_cycle)await wait(700);
  }
  const addresses=[...new Set(snapshots.flatMap(s=>[...lpAccounts(state.risk_reports[s.address]?.report,s.pair_address),
   ...whaleTargets(state.risk_reports[s.address]?.report).map((h:any)=>h.address)]))];
  const accounts=new Map<string,any>();
  for(let i=0;i<addresses.length;i+=100){
-  if(clock()-started>85)break;
+  if(clock()-started>50)break;
   const batch=addresses.slice(i,i+100);
   try{const values=await rpc(batch);if(values.length!==batch.length)throw new Error('rpc_schema');batch.forEach((a,ix)=>accounts.set(a,values[ix]));}catch{/* Independent mint/freeze checks cannot stand in for LP validation. */}
  }

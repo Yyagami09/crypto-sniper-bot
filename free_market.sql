@@ -33,4 +33,4 @@ begin
  return request_id;
 end; $$;
 revoke all on function public.pump_tick() from public,anon,authenticated,service_role;
-select cron.schedule('pump-radar-every-minute','*/5 * * * *','select public.pump_tick();');
+select cron.schedule('pump-radar-every-minute','* * * * *','select public.pump_tick();');

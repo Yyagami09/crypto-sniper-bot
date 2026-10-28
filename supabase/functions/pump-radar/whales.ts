@@ -36,7 +36,7 @@ export function observeWhales(s:any,report:any,accounts:Map<string,any>,state:an
   const usd=s.price>0?tokens*s.price:null;
   const percentage=Number(w.amount*1000000n/supply)/10000;
   next[wallet]={amount:w.amount.toString(),account_key,observed_at:now};
-  const comparable=previous&&previous.account_key===account_key&&now-previous.observed_at>=240&&now-previous.observed_at<=1200;
+  const comparable=previous&&previous.account_key===account_key&&now-previous.observed_at>=30&&now-previous.observed_at<=1200;
   const delta=comparable?w.amount-BigInt(previous.amount):null;
   // Retain a just-exited holder in this cycle instead of hiding the decrease.
   const previousUsd=previous?s.price*Number(BigInt(previous.amount))/10**s.token_decimals:0;
@@ -51,6 +51,7 @@ export function observeWhales(s:any,report:any,accounts:Map<string,any>,state:an
   const supplyPct=Number((w.amount-initial)*1000000n/supply)/10000;
   const gradual=streak>=3&&now-startAt>=720&&windowPct<=-10&&supplyPct<=-.5;
   Object.assign(next[wallet],{decrease_streak:streak,decrease_start_amount:startAmount,decrease_start_at:startAt});
+  if(previous&&previous.account_key===account_key&&now-previous.observed_at<30)next[wallet]=previous;
   if(gradual)out.gradual_reductions++;
   if(direction==='increase')out.increases++;if(direction==='decrease')out.decreases++;
   out.items.push({wallet,account_count:w.addresses.length,balance_tokens:tokens,value_usd:usd,pct_supply:percentage,

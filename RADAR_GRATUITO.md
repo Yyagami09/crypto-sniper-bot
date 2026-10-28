@@ -4,7 +4,7 @@ O Dex Trade usa **DEX Screener + GeckoTerminal + RPC público da Solana**. Não 
 
 A versão atual também consulta relatórios públicos RugCheck e saldos de uma amostra de grandes detentores. Risco, limitações, cache e indícios de slow rug estão documentados em [RISCO_E_CARTEIRAS.md](RISCO_E_CARTEIRAS.md). A camada de risco é obrigatória para novas confirmações; o indicador de carteiras é complementar.
 
-O painel continua no Streamlit e a coleta roda no Supabase a cada **5 minutos**, mesmo com a aba fechada. Nenhuma nova assinatura foi contratada. O funcionamento depende das cotas gratuitas e disponibilidade dos provedores, que podem mudar ou limitar respostas.
+O painel continua no Streamlit e a coleta roda no Supabase a cada **1 minuto**, mesmo com a aba fechada. Nenhuma nova assinatura foi contratada. O funcionamento depende das cotas gratuitas e disponibilidade dos provedores, que podem mudar ou limitar respostas.
 
 ## O que funciona
 
@@ -61,7 +61,7 @@ No **Dex Trade**, use **Ativar e testar som** e, se desejar, **Ativar notificaç
 
 ## Operação
 
-O job conserva o nome legado `pump-radar-every-minute`, mas a expressão atual é `*/5 * * * *`: roda a cada cinco minutos. Chama a função `pump-radar` com autenticação interna gerada no Vault. O gateway JWT fica desativado porque a função valida seu próprio segredo de máquina.
+O job conserva o nome legado `pump-radar-every-minute`, mas a expressão atual é `* * * * *`: roda a cada minuto. Chama a função `pump-radar` com autenticação interna gerada no Vault. O gateway JWT fica desativado porque a função valida seu próprio segredo de máquina.
 
 Uma execução não se sobrepõe à outra. Mantém até 60 observações por token e até 400 alertas internos; o feed mostra os últimos 100. Mudança da pool principal reinicia a confirmação. Para pausar, desative o job na área Cron do Supabase. Não rode o worker Python legado simultaneamente.
 
@@ -85,3 +85,11 @@ Fontes oficiais:
 - https://support.coingecko.com/articles/6867086195-does-geckoterminal-have-an-api
 - https://solana.com/docs/rpc/http/getmultipleaccounts
 - https://solana.com/docs/references/clusters
+
+### Frequência e atraso dos alertas
+
+A partir de 28/10/2026, mercado, permissões, LP e saldos da amostra de detentores são consultados a cada minuto. O painel aberto busca o feed a cada 15 segundos. Atrasos dos provedores e o tempo de coleta se somam a esses intervalos; isso não equivale a dados em tempo real.
+
+A confirmação conserva um mínimo de quatro minutos entre a primeira observação válida e a confirmação, com consultas intermediárias válidas. Uma falha reinicia a janela. Sinais já confirmados continuam ativos enquanto as condições se mantêm e as consultas não têm lacunas grandes. A janela de slow rug também permanece em 12–30 minutos, amostrada a cada quatro minutos; não é reduzida pela coleta rápida.
+
+O RugCheck usa cache de até 30 minutos, teto de dez requisições em janela móvel de cinco minutos e até quatro por execução. Falhas recebem espera progressiva para dar vez aos demais tokens. Relatório vencido ou ausente mantém a avaliação pendente. O painel informa a duração de cada coleta. Erros gerais aguardam dois minutos antes de tentar novamente. Telegram prioriza eventos novos e repete falhas transitórias a partir de um minuto, respeitando `retry_after` no envio pessoal. Permanecem até três tentativas e expiração de 30 minutos.

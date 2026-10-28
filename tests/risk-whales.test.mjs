@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {cleanReport,assessRisk} from '../supabase/functions/pump-radar/risk.ts';
+import {cleanReport,assessRisk,enrichRisks} from '../supabase/functions/pump-radar/risk.ts';
 import {observeWhales} from '../supabase/functions/pump-radar/whales.ts';
 import {evaluateFree} from '../supabase/functions/pump-radar/free-core.ts';
 import {liquidityTrend} from '../supabase/functions/pump-radar/trends.ts';
@@ -94,4 +94,45 @@ test('persistent reductions in large holder balances remain an advisory observat
  for(let i=0;i<4;i++)out=observeWhales(s,report,new Map([['4'.repeat(32),account(mint,'4'.repeat(32),String(100000000-i*10000000))]]),state,now+i*300);
  assert.equal(out.gradual_reductions,1);assert.equal(out.items[0].gradual_reduction,true);
  assert.equal(evaluateFree({...s,risk:assessRisk(s,cached(),accounts(),now),whales:out},null,now).status,'qualified');
+});
+
+test('one-minute wallet samples show changes and preserve the twelve-minute gradual-reduction window',()=>{
+ const state={},s=snapshot(),report=cached().report;let out;
+ for(let i=0;i<=12;i++){
+  out=observeWhales(s,report,new Map([['4'.repeat(32),account(mint,'4'.repeat(32),String(100000000-i*1000000))]]),state,now+i*60);
+  if(i>0){assert.equal(out.decreases,1);assert.equal(out.items[0].delta_tokens,-1);}
+  if(i<12)assert.equal(out.gradual_reductions,0);
+ }
+ assert.equal(out.gradual_reductions,1);
+});
+test('faster scans do not shorten the LP slow-rug observation window',()=>{
+ const state={};let trend;
+ for(let i=0;i<=12;i++){
+  trend=liquidityTrend({...snapshot(),base_reserve:1000-i*20,quote_reserve:100-i*2},
+   {lp_chain_checked:true,lp_supply_raw:String(1000000-i*10000)},state,now+i*60);
+  if(i<12)assert.notEqual(trend.status,'warning');
+ }
+ assert.equal(trend.status,'warning');assert.equal(trend.observations,4);assert.equal(trend.window_minutes,12);
+});
+
+test('report scheduling is fair, bounds requests across minute scans and backs off unavailable reports',async()=>{
+ const state={},calls=[];
+ const snapshots=Array.from({length:12},(_,i)=>({...snapshot(),address:String(i+2).replace(/0/g,'A').repeat(32),volume_5m:12000-i}));
+ for(let minute=0;minute<4;minute++){
+  let time=now+minute*60;
+  await enrichRisks(snapshots,state,async(url)=>{calls.push(url);throw Error('unavailable');},async()=>[],()=>time,time,async(ms)=>{time+=ms/1000;});
+ }
+ assert.equal(calls.length,10);assert.equal(new Set(calls).size,10);
+ assert.ok(snapshots.every(s=>s.risk.status!=='reviewed'));
+ let time=now+240;
+ await enrichRisks(snapshots,state,async(url)=>{calls.push(url);throw Error('unavailable');},async()=>[],()=>time,time,async()=>{});
+ assert.equal(calls.length,10);
+ time=now+301;
+ await enrichRisks(snapshots,state,async(url)=>{calls.push(url);throw Error('unavailable');},async()=>[],()=>time,time,async()=>{});
+ assert.ok(calls.length>10);assert.ok(calls.length<=14);
+});
+test('warm report cache bypasses report HTTP but still verifies fresh LP accounts',async()=>{
+ const state={risk_reports:{[mint]:cached()}},s=snapshot();let rpcs=0;
+ await enrichRisks([s],state,()=>{throw Error('must use cache');},async(batch)=>{rpcs++;return batch.map(a=>accounts().get(a)||null);},()=>now,now,async()=>{});
+ assert.equal(s.risk.status,'reviewed');assert.equal(rpcs,1);
 });

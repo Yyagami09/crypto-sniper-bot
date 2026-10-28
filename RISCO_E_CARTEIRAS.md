@@ -15,7 +15,7 @@ As verificações básicas de mint/freeze, extensões não reconhecidas e queda 
 
 ## APIs e cadência
 
-O coletor continua a cada cinco minutos, sem depósito, assinatura ou nova chave. Consulta até dez relatórios RugCheck por ciclo, serializados e com limite de tempo. O cache local de relatório expira após 30 minutos; o provedor pode servir seu próprio cache. O painel distingue consulta do relatório e consulta da LP. Na primeira ativação, alguns tokens podem precisar de vários ciclos para obter dados.
+O coletor continua a cada minuto, sem depósito, assinatura ou nova chave. Consulta até quatro relatórios RugCheck por ciclo, em sequência, com orçamento de 20 segundos para essa etapa e teto móvel de dez requisições a cada cinco minutos. Relatórios ausentes ou sem a pool selecionada entram em espera progressiva de 5–30 minutos; a fila prioriza os menos recentemente consultados para evitar que falhas monopolizem a coleta. O cache local de relatório expira após 30 minutos; o provedor pode servir seu próprio cache. O painel distingue consulta do relatório e consulta da LP. Na primeira ativação, alguns tokens podem precisar de vários ciclos para obter dados.
 
 As consultas de contas de LP e detentores são agrupadas em lotes de até 100 no RPC público da Solana. Consultas incompletas não liberam sinais. O feed só recebe o resumo criado pelo coletor; não publica respostas brutas do provedor ou caches internos.
 
@@ -23,7 +23,7 @@ As consultas de contas de LP e detentores são agrupadas em lotes de até 100 no
 
 Indicador complementar, sem adicionar pontos aos sete critérios e sem bloquear um sinal por si só. Monitora uma amostra de até cinco contas dos maiores detentores fora das pools, agrupadas por proprietário. Destaca quem tem pelo menos 1% da oferta ou saldo estimado de pelo menos US$ 10 mil. Não é uma busca de todas as carteiras com grande patrimônio na rede.
 
-Compara saldos atuais na Solana com a leitura anterior entre quatro e vinte minutos. A primeira leitura fica aguardando comparação. Falhas de RPC não são tratadas como saldo zero. Uma conta confirmadamente encerrada pode indicar redução para zero. Mudanças na amostra reiniciam a comparação para não gerar fluxos fictícios. Uma alta de preço sem mudança de tokens não aparece como entrada.
+Compara saldos atuais na Solana com a leitura anterior entre 30 segundos e vinte minutos, normalmente a cada minuto. A primeira leitura fica aguardando comparação. Falhas de RPC não são tratadas como saldo zero. Uma conta confirmadamente encerrada pode indicar redução para zero. Mudanças na amostra reiniciam a comparação para não gerar fluxos fictícios. Uma alta de preço sem mudança de tokens não aparece como entrada.
 
 O painel mostra aumento/redução de saldo, quantidade de tokens e valor estimado ao preço consultado. Isso pode ser transferência entre contas, envio para exchange, airdrop ou outras operações; não comprova compra/venda ou intenção. Não há notificações externas novas só por esse indicador.
 

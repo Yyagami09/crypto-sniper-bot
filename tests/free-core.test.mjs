@@ -15,3 +15,21 @@ test('two spaced observations generate only a partial-market signal',()=>{const 
 test('public feed excludes private state, positions and delivery details',()=>{const s={...snap(),private_secret:'HIDDEN'};const state={tokens:{[a]:{address:a,snapshot:s,anotacoes:'HIDDEN',history:[]}},alerts:[{kind:'candidate',snapshot:s,telegram_chat:'HIDDEN'}],run:{cron_token:'HIDDEN',status:'ok'},previous_private:{wallet:'HIDDEN'}};const out=JSON.stringify(publicFeed(state));assert.ok(!out.includes('HIDDEN'));assert.ok(!out.includes('telegram_chat'));});
 test('forward observations compare prices, never claim execution return',()=>{const s=snap(),state={tokens:{[a]:{snapshot:{...s,observed_at:now+900,price:.0012}}},alerts:[{kind:'candidate',address:a,created_at:now,snapshot:s}]};updateOutcomes(state,now+900);assert.ok(Math.abs(state.alerts[0].observations['15min'].change_percent-20)<.001);assert.equal(state.alerts[0].observations['1h'],undefined);});
 test('unrelated tokens, stale observations and absent price do not fabricate outcomes',()=>{assert.throws(()=>fromDex(a,{...pair,baseToken:{address:'5'.repeat(32)}},account,now));const state={tokens:{[a]:{snapshot:{...snap(),observed_at:now,price:null}}},alerts:[{kind:'candidate',address:a,created_at:now-900,snapshot:snap()}]};updateOutcomes(state,now);assert.equal(state.alerts[0].observations,undefined);});
+
+test('one-minute scans preserve four-minute confirmation and keep a confirmed signal active',()=>{
+ const state={alerts:[]},t={address:a};
+ for(let minute=0;minute<=3;minute++){
+  applyFree(state,t,snap(),now+minute*60);
+  assert.equal(t.status,'confirming');assert.equal(state.alerts.length,0);
+ }
+ applyFree(state,t,snap(),now+240);assert.equal(t.status,'candidate');assert.equal(state.alerts.length,1);
+ for(let minute=5;minute<30;minute++)applyFree(state,t,{...snap(),risk:{...snap().risk,checked_at:now+minute*60}},now+minute*60);
+ assert.equal(t.status,'candidate');assert.equal(state.alerts.length,1);
+ applyFree(state,t,{...snap(),risk:{...snap().risk,checked_at:now+3600}},now+3600);assert.equal(t.status,'confirming');
+});
+test('a failure between fast scans restarts the confirmation window',()=>{
+ const state={alerts:[]},t={address:a};applyFree(state,t,snap(),now);
+ applyFree(state,t,{...snap(),volume_5m:0},now+180);assert.equal(t.status,'watch');
+ applyFree(state,t,snap(),now+240);applyFree(state,t,snap(),now+300);
+ assert.equal(t.status,'confirming');assert.equal(state.alerts.length,0);
+});

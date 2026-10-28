@@ -38,7 +38,7 @@ O token é criptografado no Supabase Vault. Chat ID, conexão, segredo e histór
 - `sniper-account`: valida cada JWT com Supabase Auth e exige perfil ativo no banco. Gerencia contas (admin), senhas próprias e conexão/teste/desconexão pessoal.
 - `sniper_profiles`: usuários leem apenas o próprio perfil; somente backend escreve funções e privilégios.
 - `sniper_telegram` / `sniper_deliveries`: acesso exclusivo do backend. Funções do Vault têm execução revogada para `anon` e `authenticated`, com verificação adicional de `service_role`.
-- `pump-radar`: coleta a cada 5 minutos e entrega eventos novos às conexões ativas, com registros de tentativas por usuário/evento. Credenciais nunca entram no feed de mercado.
+- `pump-radar`: coleta a cada 1 minuto e entrega eventos novos às conexões ativas, com registros de tentativas por usuário/evento. Credenciais nunca entram no feed de mercado.
 - `users_notifications.sql`: referência da migração já aplicada em partes nomeadas. Não reaplicar sobre a instalação atual.
 
 As contas iniciais foram provisionadas pela API administrativa do Supabase, não por inserções diretas em `auth.users`. O bootstrap exige o segredo interno do cron e se recusa a rodar depois de existir qualquer perfil. Nenhuma senha é retornada por APIs de lista de usuários.

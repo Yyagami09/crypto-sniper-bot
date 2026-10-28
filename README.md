@@ -2,7 +2,7 @@
 
 Painel Streamlit com Game Sniper e radar gratuito de mercado no módulo Dex Trade.
 
-O radar usa DEX Screener, GeckoTerminal e RPC público da Solana. Roda a cada cinco minutos no Supabase, independente do navegador. Não requer depósito, carteira ou chave GMGN. Veja funcionamento e Telegram opcional em [RADAR_GRATUITO.md](RADAR_GRATUITO.md).
+O radar usa DEX Screener, GeckoTerminal e RPC público da Solana. Roda a cada minuto no Supabase, independente do navegador. Não requer depósito, carteira ou chave GMGN. Veja funcionamento e Telegram opcional em [RADAR_GRATUITO.md](RADAR_GRATUITO.md).
 
 Triagem por critérios experimentais, com registro de origem, horário e informações ausentes. Não executa negociações.
 

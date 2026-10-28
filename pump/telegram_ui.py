@@ -14,7 +14,7 @@ def render_telegram_connection():
     connection = result.get('connection')
     if connection and connection['connected']:
         st.success(f"Conectado ao bot @{connection['bot_username']}")
-        st.caption('Os avisos seguem a coleta de 5 minutos. Deixe as notificações do Telegram habilitadas no celular ou Windows. Bloquear ou silenciar o bot impede os avisos.')
+        st.caption('Os avisos seguem a coleta de 1 minuto. Deixe as notificações do Telegram habilitadas no celular ou Windows. Bloquear ou silenciar o bot impede os avisos.')
         a,b = st.columns(2)
         if a.button('Enviar teste ao meu Telegram', key='telegram_test'):
             try:

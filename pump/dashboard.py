@@ -38,7 +38,7 @@ def render():
             from pump.demo import seed_demo
             if not seed_demo(store, rules):
                 st.info('Aguarde a varredura de demonstração terminar.')
-    st.caption('O painel atualiza a cada 15 segundos. A coleta automática ocorre a cada 5 minutos, mesmo com a aba fechada.')
+    st.caption('O painel atualiza a cada 15 segundos. A coleta automática ocorre a cada 1 minuto, mesmo com a aba fechada.')
     _body(store, rules, demo, bool(config.get('TELEGRAM_BOT_TOKEN') and config.get('TELEGRAM_CHAT_ID')))
 
 
@@ -68,7 +68,7 @@ def _body(store, rules, demo, telegram_configured):
         st.warning('O coletor gratuito ainda não publicou a primeira varredura. Aguarde o próximo ciclo.')
     elif run.get('status') == 'error':
         st.error(f"Varredura interrompida ({run.get('error', 'erro')}). Nova tentativa após {stamp(state.get('backoff_until'))}.")
-    elif now-latest > max(900, run.get('rules', {}).get('interval_seconds', 300)*3):
+    elif now-latest > max(180, run.get('rules', {}).get('interval_seconds', 60)*3):
         st.warning('Sem atualização recente do radar. Confira o processo antes de usar os dados.')
     else:
         st.success('Varredura em andamento' if run.get('status') == 'running' else 'Radar atualizou recentemente')
@@ -77,6 +77,8 @@ def _body(store, rules, demo, telegram_configured):
         for issue in run.get('source_errors', []):
             st.warning(str(issue))
     st.caption(f"Último ciclo: {stamp(latest)} · Tokens consultados no ciclo: {run.get('checked', 0)} · Falhas: {run.get('errors', 0)} · Horários de Brasília")
+    if run.get('completed_at') and run.get('started_at'):
+        st.caption(f"Duração da coleta: {max(0, run['completed_at']-run['started_at']):.1f}s · Frequência prevista: {run.get('rules', {}).get('interval_seconds', 60)}s · Confirmação: mínimo de 4 minutos")
     tokens = list(state.get('tokens', {}).values())
     a,b,c,d = st.columns(4)
     a.metric('Em acompanhamento', len(tokens))
@@ -120,7 +122,7 @@ def _body(store, rules, demo, telegram_configured):
         st.json(run.get('rules') or asdict(rules))
         st.write('Aderência aos critérios: cada um dos sete filtros de mercado vale 1/7 da nota. Dados essenciais ausentes, consultas antigas ou restrições deixam a pontuação pendente. A nota não estima lucro ou segurança e não altera o motor de alertas.')
         st.write('Duas consultas confirmam o sinal. A janela móvel de 5 minutos pode se sobrepor; isso não representa duas evidências independentes.')
-        st.write('Fontes: DEX Screener, GeckoTerminal e RPC público da Solana. Ciclos de 5 minutos, até 30 moedas em acompanhamento. APIs gratuitas podem atrasar, limitar ou interromper respostas.')
+        st.write('Fontes: DEX Screener, GeckoTerminal e RPC público da Solana. Ciclos de 1 minuto, até 30 moedas em acompanhamento. APIs gratuitas podem atrasar, limitar ou interromper respostas.')
         st.write('Os sete critérios de mercado usam volume em USD, quantidade de compras/vendas, variação, liquidez, idade da pool e faixa de avaliação. Uma camada separada retém sinais por risco: LP, concentração fora das pools, alertas críticos externos e giro de volume atípico. Relatórios indisponíveis deixam a avaliação pendente. FDV é identificado e não tratado como market cap.')
         st.write('Grandes carteiras: uma amostra de até cinco contas de grandes detentores é consultada na Solana. O indicador mostra variações de saldo, não ordens de compra/venda comprovadas, e não adiciona pontos nem bloqueia sinais por si só.')
         st.write('As variações após 15 minutos e 1 hora comparam preços observados na mesma pool. Não simulam execução, taxas, slippage ou lucro realizável. Não há promessa de retorno, análise de narrativas por IA ou execução de ordens.')

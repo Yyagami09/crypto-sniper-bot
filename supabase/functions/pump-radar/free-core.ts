@@ -1,6 +1,6 @@
 import {n,validAddress,event} from './core.ts';
 import {riskRules} from './risk.ts';
-export const freeRules={profile:'free-market-v1',interval_seconds:300,max_tracked:30,
+export const freeRules={profile:'free-market-v1',interval_seconds:60,max_tracked:30,
  min_liquidity:25000,min_valuation:100000,max_valuation:10000000,min_pool_age_minutes:15,
  max_pool_age_minutes:10080,min_volume_5m:5000,min_transactions_5m:10,
  min_buy_sell_count_ratio:1.2,min_change_5m:2,max_change_5m:40,
@@ -61,13 +61,17 @@ export function evaluateFree(s:any,prev:any,now:number){
 export function applyFree(state:any,t:any,s:any,now:number){
  const changed=t.snapshot&&t.snapshot.pair_address!==s.pair_address;
  if(changed)t.qualified_at=0;
- const v=evaluateFree(s,changed?null:t.snapshot,now),old=t.status;
+ const v=evaluateFree(s,changed?null:t.snapshot,now),old=t.status,previousCheck=t.last_checked;
  t.snapshot=s;t.last_checked=now;t.reasons=v.reasons;t.missing=v.missing;
  t.history=[...(t.history||[]),{observed_at:now,price:s.price,liquidity:s.liquidity,volume_5m:s.volume_5m}].slice(-60);
  if(v.status==='qualified'){
-  const dt=now-(t.qualified_at||0);
-  t.status=t.qualified_at&&dt>=freeRules.confirmation_min_seconds&&dt<=freeRules.confirmation_max_seconds?'candidate':'confirming';
-  t.qualified_at=now;
+  // Keep the initial qualifying observation across fast scans; resetting it on
+  // every minute would prevent reaching the four-minute confirmation window.
+  const gap=previousCheck?now-previousCheck:Infinity;
+  if(!t.qualified_at||gap>freeRules.confirmation_max_seconds||now-t.qualified_at>freeRules.confirmation_max_seconds&&old!=='candidate')t.qualified_at=now;
+  const dt=now-t.qualified_at;
+  t.status=old==='candidate'&&!changed&&gap<=freeRules.confirmation_max_seconds||dt>=freeRules.confirmation_min_seconds&&dt<=freeRules.confirmation_max_seconds?'candidate':'confirming';
+  if(t.status==='candidate')t.qualified_at=now;
   if(t.status==='candidate'&&old!=='candidate'){t.last_signal_at=now;event(state,t,'candidate',v.reasons,now);}
  }else{
   t.status=v.status;t.qualified_at=0;

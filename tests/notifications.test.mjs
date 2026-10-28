@@ -51,3 +51,15 @@ test('a blocked Telegram bot is disabled and does not retry forever',async()=>{
  assert.ok(writes.some(w=>w.path.startsWith('sniper_telegram')&&w.body.enabled===false));
  assert.equal(writes.at(-1).body.status,'failed');
 });
+
+test('fresh events are delivered before backlog and Telegram rate-limit retry_after is honored',async()=>{
+ const writes=[],sent=[];
+ const fresh={...alert,id:'fresh',created_at:now};
+ const db=async(path,body)=>{if(path.startsWith('rpc/'))return [connection];if(body){writes.push({path,body});return [];}return [];};
+ await deliverPersonal({tokens:{A:{status:'candidate',snapshot:alert.snapshot}},alerts:[alert,fresh]},db,now,async(url,opts)=>{
+  sent.push(JSON.parse(opts.body));return {status:429,json:async()=>({ok:false,parameters:{retry_after:180}})};
+ },()=>now);
+ assert.equal(writes[0].body.alert_id,'fresh');
+ assert.equal(writes[1].body.next_attempt,new Date((now+180)*1000).toISOString());
+ assert.equal(sent.length,2);
+});

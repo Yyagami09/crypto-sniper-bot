@@ -46,8 +46,12 @@ Deno.serve(async(req)=>{
   };
   try{
    const discovered:any[]=[];
+   const discovery=await Promise.allSettled([
+    get('https://api.geckoterminal.com/api/v2/networks/solana/new_pools'),
+    get('https://api.dexscreener.com/token-profiles/latest/v1')]);
    try{
-    const j=await get('https://api.geckoterminal.com/api/v2/networks/solana/new_pools');
+    if(discovery[0].status!=='fulfilled')throw new Error('discovery');
+    const j=discovery[0].value;
     if(!Array.isArray(j.data))throw new Error('schema');
     for(const row of j.data){
      const id=row.relationships?.base_token?.data?.id;
@@ -55,7 +59,8 @@ Deno.serve(async(req)=>{
     }
    }catch{state.run.source_errors.push('GeckoTerminal: descoberta indisponível');}
    try{
-    const j=await get('https://api.dexscreener.com/token-profiles/latest/v1');
+    if(discovery[1].status!=='fulfilled')throw new Error('discovery');
+    const j=discovery[1].value;
     if(!Array.isArray(j))throw new Error('schema');
     for(const x of j)if(x.chainId==='solana')discovered.push({address:x.tokenAddress,source:'DEX Screener — perfil recente (pode ser promocional)',liquidity:null});
    }catch{state.run.source_errors.push('DEX Screener: perfis indisponíveis');}
@@ -101,16 +106,16 @@ Deno.serve(async(req)=>{
     await enrichRisks(snapshots,state,(url:string)=>get(url,4000),rpc,now,started);
     for(const snap of snapshots)applyFree(state,state.tokens[snap.address],snap,now());
     const pendingRisk=snapshots.filter(s=>s.risk.status==='pending').length;
-    if(pendingRisk)state.run.source_errors.push(`${pendingRisk} tokens aguardam relatório/consulta de risco. Até 10 relatórios são consultados por ciclo; ausências não liberam sinais.`);
+    if(pendingRisk)state.run.source_errors.push(`${pendingRisk} tokens aguardam relatório/consulta de risco. Até 4 relatórios por ciclo, com orçamento de 10 a cada 5 min; ausências não liberam sinais.`);
    }
    updateOutcomes(state,now());
    state.run.status=state.run.errors||state.run.source_errors.length?'partial':'ok';state.backoff_until=0;
   }catch{
-   state.run.status='error';state.run.error='public_sources_unavailable';state.backoff_until=now()+600;
+   state.run.status='error';state.run.error='public_sources_unavailable';state.backoff_until=now()+120;
   }
   state.run.completed_at=now();state.alerts=state.alerts.slice(-400);await commit();await publish();
   let attempts=0;
-  for(const a of state.alerts){
+  for(const a of [...state.alerts].sort((a,b)=>b.created_at-a.created_at)){
    if(a.delivery!=='pending')continue;
    if(a.kind==='candidate'&&(a.snapshot.risk?.status!=='reviewed'||state.tokens[a.address]?.status!=='candidate'||state.tokens[a.address]?.snapshot?.risk?.status!=='reviewed')){a.delivery='expired';continue;}
    if(now()-a.created_at>1800){a.delivery='expired';continue;}
@@ -122,8 +127,8 @@ Deno.serve(async(req)=>{
    try{
     const r=await fetch(`https://api.telegram.org/bot${cfg.telegram_token}/sendMessage`,{method:'POST',headers:{'Content-Type':'application/json'},
      body:JSON.stringify({chat_id:cfg.telegram_chat,text,link_preview_options:{is_disabled:true}}),signal:AbortSignal.timeout(5000)});
-    const result=await r.json();if(result.ok)a.delivery='sent';else a.next_attempt=now()+300;
-   }catch{a.next_attempt=now()+300;}
+    const result=await r.json();if(result.ok)a.delivery='sent';else a.next_attempt=now()+Math.max(60,Math.min(86400,Number(result.parameters?.retry_after)||60));
+   }catch{a.next_attempt=now()+60;}
    await commit();await pause(1100);
   }
   try{await deliverPersonal(state,db,started);}catch{/* Delivery retries next cycle; collection remains available. */}
