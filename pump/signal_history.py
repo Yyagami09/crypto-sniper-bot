@@ -1,6 +1,6 @@
 import streamlit as st
 from pump.criteria import adherence, number
-from pump.radar_cards import CSS, CARD_STATUS, card_markup, chart_url, details, stamp
+from pump.radar_cards import CSS, CARD_STATUS, card_markup, chart_url, details, stamp, render_pump_link
 from pump.storage import StorageError
 
 
@@ -66,6 +66,7 @@ def render_history(store, state, now, demo=False):
                 url = chart_url(t)
                 if url and not demo:
                     st.link_button('Abrir gráfico',url,key='history_chart_'+a['id'],use_container_width=True)
+                if not demo:render_pump_link(t,key='history_pump_'+a['id'])
                 details(t,model)
     left,middle,right = st.columns([1,2,1])
     if left.button('← Mais recentes',key='history_previous',disabled=page==0):

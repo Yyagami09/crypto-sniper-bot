@@ -3,7 +3,7 @@ import html
 import time
 import streamlit as st
 from pump.storage import StorageError
-from pump.radar_cards import chart_url, usd, stamp
+from pump.radar_cards import chart_url, usd, stamp, render_pump_link
 from pump.criteria import number
 
 MODES={'early-v1':'Antecipado · experimental','classic':'Clássico'}
@@ -98,6 +98,7 @@ def render_experiment(store,state,now):
                         render_summary(s,now)
                         url=chart_url(token)
                         if url:st.link_button('👀 Analisar gráfico' if status=='reviewed' else 'Abrir gráfico',url,type='primary' if status=='reviewed' else 'secondary',use_container_width=True)
+                        render_pump_link(token,key='early_pump_'+r['id'])
                         st.caption('Revisão manual · não é indicação de compra' if status=='reviewed' else 'Experimental · sem indicação de compra')
                         with st.expander('Por que recebeu esta cor?'):
                             st.caption('Primeira leitura: '+stamp(r.get('first_at'))+f" · {r.get('observations',0)} observações")

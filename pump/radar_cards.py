@@ -68,6 +68,17 @@ def chart_url(token):
     return None
 
 
+def render_pump_link(token, key=None):
+    """Open the token mint, never the pool address or an upstream URL."""
+    snapshot = token.get('snapshot') or {}
+    address = token.get('address')
+    if (snapshot.get('chain_id','solana')=='solana' and isinstance(address,str)
+            and re.fullmatch(r'[1-9A-HJ-NP-Za-km-z]{32,44}',address)):
+        st.link_button('Ver na pump.fun','https://pump.fun/coin/'+address,key=key,
+                       use_container_width=True,
+                       help='Abre este contrato na pump.fun. A disponibilidade de negociação depende da plataforma.')
+
+
 def confirmed_find(token, model):
     return (token.get('snapshot') or {}).get('chain_id','solana')=='solana' and token.get('status')=='candidate' and model['score']==100 and not model['issue'] and not model['stale']
 
@@ -239,6 +250,7 @@ def render_radar(tokens, rules, now, demo=False):
                 url = chart_url(token)
                 if url and not demo:
                     st.link_button('Abrir gráfico', url)
+                    render_pump_link(token)
                 details(token,model)
         return
     def grid(items, group):
@@ -251,6 +263,7 @@ def render_radar(tokens, rules, now, demo=False):
                     url = chart_url(token)
                     if url and not demo:
                         st.link_button('Abrir gráfico', url, use_container_width=True)
+                        render_pump_link(token)
                     details(token,model)
     for group,title in GROUPS.items():
         items = [e for e in entries if category(e)==group]

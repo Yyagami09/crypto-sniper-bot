@@ -111,6 +111,8 @@ def _body(store, rules, demo, telegram_configured, chain='solana'):
             st.code(alert['address'], language=None)
             if not demo:
                 st.link_button('Abrir gráfico', alert['snapshot'].get('pair_url') or 'https://dexscreener.com/solana/' + alert['address'])
+                from pump.radar_cards import render_pump_link
+                render_pump_link(alert,key='alert_pump_'+alert['id'])
             delivery = {'sent':'Enviado ao Telegram','pending':'Pendente de envio ao Telegram',
                         'demo':'Simulação','panel':'Registrado no feed de mercado','failed':'Envio falhou','expired':'Alerta expirou para envio'}
             st.caption(delivery.get(alert.get('delivery'), 'Registrado no painel'))

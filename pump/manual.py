@@ -2,7 +2,7 @@
 import time
 import streamlit as st
 from pump.networks import NETWORKS
-from pump.radar_cards import usd,stamp
+from pump.radar_cards import usd,stamp,render_pump_link
 from pump.early_details import render_summary,render_verifications
 from pump.criteria import number
 
@@ -57,6 +57,7 @@ def render_report(report):
         with column,st.container(border=True,key='dex_summary_manual_'+str(i)):st.metric(label,value)
     st.caption('Contrato consultado: '+s['address'])
     st.link_button('Abrir gráfico no DEX Screener',s['pair_url'],type='primary',use_container_width=True)
+    render_pump_link({'address':s['address'],'snapshot':{**s,'chain_id':report['chain']}},key='manual_pump')
     summary,graph,risk,sources=st.tabs(['📋 Leitura rápida','📈 Gráfico e reentrada','🛡️ Verificações','ℹ️ Fontes e limites'])
     with summary:
         st.write('**O que os dados mostram agora**')
