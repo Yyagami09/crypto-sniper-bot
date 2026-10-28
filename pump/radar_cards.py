@@ -18,6 +18,19 @@ CSS = '''<style>
 .dex-score-row{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-top:4px}.dex-score-label{font-size:12px;color:#a2b3c0}.dex-score{font-size:24px;font-weight:750;color:#eaf5f3}.dex-score small{font-size:12px;color:#91a5b5;font-weight:400}.dex-score-pending{font-size:13px;color:#d3b88b}
 .dex-bar{height:5px;border-radius:4px;overflow:hidden;background:#273540;margin:8px 0 5px}.dex-bar span{display:block;height:100%;background:#38c8b0}.dex-caption{font-size:11px;color:#8fa4b4;line-height:1.5}
 .dex-facts{display:grid;grid-template-columns:1fr 1fr;gap:13px 12px;border-top:1px solid #293541;margin-top:14px;padding-top:14px}.dex-fact-label{font-size:11px;color:#93a8b8}.dex-fact-value{font-size:16px;color:#edf4f9;font-weight:650;margin-top:3px;overflow-wrap:anywhere}.dex-missing{border-top:1px solid #293541;margin-top:14px;padding-top:12px;font-size:12px;color:#c9d5df;min-height:44px;line-height:1.6}.dex-timestamp{font-size:11px;color:#8b9faf;margin:10px 0 4px}
+[class*="st-key-dex_card_gold_"]{position:relative;isolation:isolate;overflow:hidden;background:radial-gradient(ellipse at 95% 0%,#76501e55,transparent 55%),linear-gradient(145deg,#2d2414,#191a15 60%,#242015)!important;border:1px solid #d5a849!important;box-shadow:0 0 0 1px #f9d76c1a,inset 0 1px 0 #fff1b733,0 8px 30px #d5a34220!important;animation:dex-gold-arrival .85s ease-out both}
+[class*="st-key-dex_card_gold_"]:hover{border-color:#ffe29a!important;box-shadow:0 0 0 1px #ffdd7540,0 10px 36px #d5a34230!important}
+[class*="st-key-dex_card_gold_"]::before{content:"";position:absolute;pointer-events:none;z-index:0;top:-20%;left:-90%;width:60%;height:140%;background:linear-gradient(90deg,transparent,#fff0b31c,transparent);transform:rotate(18deg);animation:dex-gold-sweep 1.6s .15s ease-out both}
+[class*="st-key-dex_card_gold_"]>div{position:relative;z-index:1}
+.dex-find{position:relative;display:flex;align-items:center;gap:10px;border-bottom:1px solid #b68b3b55;padding-bottom:14px;margin-bottom:15px}.dex-find-icon{display:grid;place-items:center;flex-shrink:0;width:40px;height:40px;border:1px solid #f9d46d88;border-radius:11px;background:linear-gradient(145deg,#dba94126,#aa702414);box-shadow:inset 0 1px 0 #ffe7a033;font-size:24px;animation:dex-pickaxe .65s .2s ease-out both}.dex-find-title{font-size:11px;line-height:1.5;font-weight:800;letter-spacing:1.5px;color:#ffdc83}.dex-find-subtitle{font-size:11px;line-height:1.5;color:#c9b88e;margin-top:2px}
+.dex-gold-sparks{position:absolute;right:23px;top:21px;pointer-events:none}.dex-gold-sparks i{position:absolute;width:4px;height:4px;border-radius:1px;background:#ffda73;opacity:0;animation:dex-gold-sparks 1.35s .3s ease-out both}.dex-gold-sparks i:nth-child(1){--sx:19px;--sy:-21px}.dex-gold-sparks i:nth-child(2){--sx:-17px;--sy:-27px;animation-delay:.4s;background:#fff4c1}.dex-gold-sparks i:nth-child(3){--sx:29px;--sy:4px;width:3px;height:3px}.dex-gold-sparks i:nth-child(4){--sx:-27px;--sy:9px;animation-delay:.35s}.dex-gold-sparks i:nth-child(5){--sx:10px;--sy:22px;width:3px;height:3px;background:#fff4c1}
+[class*="st-key-dex_card_gold_"] .dex-symbol{color:#ffe9ad}[class*="st-key-dex_card_gold_"] .dex-name,[class*="st-key-dex_card_gold_"] .dex-caption,[class*="st-key-dex_card_gold_"] .dex-score-label,[class*="st-key-dex_card_gold_"] .dex-fact-label,[class*="st-key-dex_card_gold_"] .dex-timestamp{color:#c9bb9a}[class*="st-key-dex_card_gold_"] .dex-status.candidate{background:#d8aa3c22;border:1px solid #d8aa3c66;color:#ffe5a4}[class*="st-key-dex_card_gold_"] .dex-score{color:#ffdf8a;text-shadow:0 0 20px #efbc4933}[class*="st-key-dex_card_gold_"] .dex-score small{color:#bdab7c}[class*="st-key-dex_card_gold_"] .dex-fact-value{color:#fff6dc}[class*="st-key-dex_card_gold_"] .dex-bar{background:#66532766}[class*="st-key-dex_card_gold_"] .dex-bar span{background:linear-gradient(90deg,#bb852e,#ffe49a,#dbaf4e)}[class*="st-key-dex_card_gold_"] .dex-facts,[class*="st-key-dex_card_gold_"] .dex-missing{border-color:#ae893d44}[class*="st-key-dex_card_gold_"] .dex-missing{color:#ead6a7}
+@keyframes dex-gold-arrival{from{opacity:.4;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+@keyframes dex-gold-sweep{from{transform:translateX(0) rotate(18deg)}to{transform:translateX(420%) rotate(18deg)}}
+@keyframes dex-pickaxe{0%{transform:rotate(-15deg)}55%{transform:rotate(9deg)}100%{transform:rotate(0)}}
+@keyframes dex-gold-sparks{0%{opacity:0;transform:translate(0,0) rotate(45deg)}20%{opacity:.85}100%{opacity:0;transform:translate(var(--sx),var(--sy)) rotate(135deg)}}
+@media(prefers-reduced-motion:reduce){[class*="st-key-dex_card_gold_"],[class*="st-key-dex_card_gold_"]::before,.dex-find-icon,.dex-gold-sparks i{animation:none!important}.dex-gold-sparks{display:none}[class*="st-key-dex_card_gold_"]::before{display:none}}
+[class*="st-key-dex_card_gold_history_"],[class*="st-key-dex_card_gold_history_"] .dex-find-icon{animation:none!important}[class*="st-key-dex_card_gold_history_"]::before,[class*="st-key-dex_card_gold_history_"] .dex-gold-sparks{display:none}
 </style>'''
 
 
@@ -49,11 +62,15 @@ def chart_url(token):
     return None
 
 
-def card_markup(token, model):
+def confirmed_find(token, model):
+    return token.get('status')=='candidate' and model['score']==100 and not model['issue'] and not model['stale']
+
+
+def card_markup(token, model, historical=False):
     s = token.get('snapshot') or {}
     status = token.get('status', 'queued')
     status = status if status in GROUPS else 'queued'
-    label = 'Consulta antiga' if model['stale'] else CARD_STATUS[status]
+    label = 'Achado registrado · risco parcial' if historical else 'Consulta antiga' if model['stale'] else CARD_STATUS[status]
     symbol = html.escape(str(s.get('symbol') or token['address'][:8]))
     name = html.escape(str(s.get('name') or 'Nome indisponível'))
     badge_class = 'incomplete' if model['stale'] else status
@@ -85,7 +102,12 @@ def card_markup(token, model):
         note = 'Confirmado em duas consultas. Avaliação de risco parcial.'
     else:
         note = 'Falta atender: '+', '.join(missing) if missing else 'Confira as verificações nos detalhes.'
-    return f'<div class="dex-head"><div><div class="dex-symbol">{symbol}</div><div class="dex-name">{name}</div></div></div><div class="dex-status {badge_class}">{html.escape(label)}</div><div class="dex-caption">{subtitle}</div><div class="dex-score-row"><span class="dex-score-label">Aderência aos critérios</span>{score}</div>{progress}<div class="dex-facts">{grid}</div><div class="dex-missing">{html.escape(note)}</div><div class="dex-timestamp">Consulta: {stamp(s.get("observed_at"))} · Brasília</div>'
+    if historical:
+        note = 'Dados preservados da confirmação. A situação atual pode ter mudado.'
+    score_label = 'Aderência na confirmação' if historical else 'Aderência aos critérios'
+    time_label = 'Dados na confirmação' if historical else 'Consulta'
+    celebration = '<div class="dex-find"><span class="dex-find-icon" aria-hidden="true">⛏️</span><div><div class="dex-find-title">ACHADO NO GARIMPO</div><div class="dex-find-subtitle">7/7 critérios · duas consultas válidas</div></div><span class="dex-gold-sparks" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span></div>' if confirmed_find(token,model) else ''
+    return f'{celebration}<div class="dex-head"><div><div class="dex-symbol">{symbol}</div><div class="dex-name">{name}</div></div></div><div class="dex-status {badge_class}">{html.escape(label)}</div><div class="dex-caption">{subtitle}</div><div class="dex-score-row"><span class="dex-score-label">{score_label}</span>{score}</div>{progress}<div class="dex-facts">{grid}</div><div class="dex-missing">{html.escape(note)}</div><div class="dex-timestamp">{time_label}: {stamp(s.get("observed_at"))} · Brasília</div>'
 
 
 def details(token, model):
@@ -164,7 +186,8 @@ def render_radar(tokens, rules, now, demo=False):
         for start in range(0,len(items),3):
             columns = st.columns(3)
             for column,(token,model) in zip(columns,items[start:start+3]):
-                with column, st.container(border=True,key='dex_card_'+group+'_'+token['address']):
+                variant = 'gold' if confirmed_find(token,model) else group
+                with column, st.container(border=True,key='dex_card_'+variant+'_'+token['address']):
                     st.markdown(card_markup(token,model), unsafe_allow_html=True)
                     url = chart_url(token)
                     if url and not demo:

@@ -85,7 +85,10 @@ def _body(store, rules, demo, telegram_configured):
     d.metric('Alertas nas últimas 24h', sum(now-x['created_at'] <= 86400 for x in state['alerts']))
     from pump.browser_alerts import render_browser_alerts
     render_browser_alerts(state['alerts'], demo)
-    radar_tab, alerts_tab, config_tab = st.tabs(['📡 Radar', '🔔 Alertas', '⚙️ Critérios e operação'])
+    radar_tab, history_tab, alerts_tab, config_tab = st.tabs(['📡 Radar', '⛏️ Achados · 24h', '🔔 Alertas', '⚙️ Critérios e operação'])
+    with history_tab:
+        from pump.signal_history import render_history
+        render_history(store,state,now,demo)
     with alerts_tab:
         if not run.get('telegram_configured', telegram_configured) and not demo:
             st.info('Para receber avisos com o painel fechado, conecte seu bot pessoal no menu Notificações.')

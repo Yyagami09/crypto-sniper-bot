@@ -62,6 +62,9 @@ def seed_demo(store, rules):
                             'min_change_5m':2,'max_change_5m':40,'min_pool_age_minutes':15,
                             'max_pool_age_minutes':10080,'min_valuation':100000,'max_valuation':10000000,
                             'confirmation_max_seconds':1200}}
+        for alert in state['alerts']:
+            if alert['kind']=='candidate':
+                alert['snapshot']=dict(state['tokens'][alert['address']]['snapshot'])
         store.commit(owner, state)
         return True
     finally:

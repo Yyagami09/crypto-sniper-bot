@@ -19,7 +19,7 @@ def test_regular_user_cannot_open_admin_and_can_render_demo(tmp_path, monkeypatc
     monkeypatch.setenv('SUPABASE_URL', 'https://example.supabase.co')
     monkeypatch.setenv('SUPABASE_KEY', 'sb_publishable_example')
     profile = {'id':'test','username':'teste','display_name':'Teste','role':'user','active':True}
-    with patch('supabase.create_client'), patch('pump.account.ensure_session', return_value=True), patch('pump.storage.PublicMarketStore.read', return_value={'tokens':{},'alerts':[], 'run':{}}):
+    with patch('supabase.create_client'), patch('pump.account.ensure_session', return_value=True), patch('pump.storage.PublicMarketStore.read_history', return_value=[]), patch('pump.storage.PublicMarketStore.read', return_value={'tokens':{},'alerts':[], 'run':{}}):
         app = AppTest.from_file(str(ROOT/'app.py'), default_timeout=20)
         app.session_state['sniper_profile'] = profile
         app.session_state['sniper_session'] = {'access_token':'user-token'}
@@ -74,7 +74,7 @@ def test_live_cards_score_groups_search_and_table(monkeypatch):
         tokens[t['address']]=t
     state = {'tokens':tokens,'alerts':[],'run':{'rules':RULES,'completed_at':now,'status':'ok'}}
     profile = {'id':'test-id','username':'teste','display_name':'Teste','role':'user','active':True}
-    with patch('supabase.create_client'), patch('pump.account.ensure_session', return_value=True), patch('pump.storage.PublicMarketStore.read', return_value=state):
+    with patch('supabase.create_client'), patch('pump.account.ensure_session', return_value=True), patch('pump.storage.PublicMarketStore.read_history', return_value=[]), patch('pump.storage.PublicMarketStore.read', return_value=state):
         app = AppTest.from_file(str(ROOT/'app.py'), default_timeout=20)
         app.session_state['sniper_profile']=profile
         app.session_state['sniper_session']={'access_token':'user-token'}
@@ -94,3 +94,31 @@ def test_live_cards_score_groups_search_and_table(monkeypatch):
         app.text_input(key='dex_search').set_value('SEM_RESULTADO').run()
         assert not app.exception
         assert any('Nenhuma moeda' in msg.value for msg in app.info)
+
+
+def test_saved_find_remains_gold_when_coin_loses_criteria_and_leaves_radar(monkeypatch):
+    import time
+    from tests.test_criteria import token, RULES
+    monkeypatch.setenv('SUPABASE_URL','https://example.supabase.co')
+    monkeypatch.setenv('SUPABASE_KEY','sb_publishable_example')
+    now=time.time()
+    t=token()
+    t.update(status='watch',last_checked=now,first_seen=now-3600,reasons=['Volume abaixo do mínimo'])
+    t['snapshot'].update(observed_at=now,pool_created_at=now-3600,volume_5m=1000)
+    original=dict(t['snapshot'],observed_at=now-300,pool_created_at=now-3600,volume_5m=5000)
+    saved={'payload':{'id':'saved-event','kind':'candidate','address':t['address'],'created_at':now-300,'snapshot':original},'rules':RULES}
+    state={'tokens':{t['address']:t},'alerts':[],'run':{'rules':RULES,'status':'ok','completed_at':now}}
+    profile={'id':'test-id','username':'teste','display_name':'Teste','role':'user','active':True}
+    with patch('supabase.create_client'),patch('pump.account.ensure_session',return_value=True),patch('pump.storage.PublicMarketStore.read',return_value=state),patch('pump.storage.PublicMarketStore.read_history',return_value=[saved]):
+        app=AppTest.from_file(str(ROOT/'app.py'),default_timeout=20)
+        app.session_state['sniper_profile']=profile
+        app.session_state['sniper_session']={'access_token':'user-token'}
+        app.run()
+        assert not app.exception
+        assert any('ACHADO NO GARIMPO' in m.value and 'Aderência na confirmação' in m.value for m in app.markdown)
+        assert any('Em observação' in i.value and 'Situação atual' in i.value for i in app.info)
+        state['tokens']={}
+        app.run()
+        assert not app.exception
+        assert any('Achado registrado' in m.value for m in app.markdown)
+        assert any('Fora do radar' in i.value for i in app.info)

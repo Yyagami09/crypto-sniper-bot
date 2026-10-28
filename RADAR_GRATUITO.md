@@ -23,6 +23,16 @@ A nota é `arredondar(100 × critérios atendidos ÷ 7)`, com pesos iguais: liqu
 
 A nota não estima lucro, segurança ou probabilidade de alta. Não modifica o coletor nem confirma alertas: 100/100 na primeira consulta continua aguardando a segunda consulta válida. Restrições, dados essenciais ausentes e consultas antigas não recebem nota numérica. Candidatas com consulta antiga passam para a área de dados insuficientes na visualização. Os detalhes mostram cada critério, valor, limite, motivos do coletor, histórico e dados brutos.
 
+Sinais confirmados recebem um card dourado **Achado no garimpo**, com brilho e uma breve animação de partículas. As animações respeitam a preferência de movimento reduzido do sistema. Somente confirmações válidas recebem esse destaque no radar.
+
+## Achados nas últimas 24 horas
+
+A aba **Achados · 24h** mantém um card dourado para cada evento de confirmação durante as 24 horas seguintes ao sinal, mesmo se a moeda perder os critérios, for rejeitada ou sair do radar atual. O prazo começa na confirmação original; novas varreduras não o renovam. Uma nova confirmação com ID distinto tem seu próprio registro.
+
+O card preserva os dados e as regras da confirmação, com a legenda **Aderência na confirmação**. A situação mais recente disponível aparece separadamente, incluindo ausência de nova consulta. Manter o dourado no histórico não significa que a moeda continua atendendo aos critérios. O histórico não simula operações ou lucro.
+
+Os eventos ficam na tabela `pump_signal_history`, com leitura para contas ativas e escrita exclusiva do coletor. O RPC de publicação grava histórico e feed na mesma transação; repetir o mesmo evento não altera o registro original. Cada publicação remove registros com mais de 24 horas, e as regras de acesso também excluem registros expirados da leitura, mesmo se o coletor estiver pausado. A interface pagina 30 eventos por vez, sem depender do limite de 100 alertas do feed. A demonstração usa apenas eventos simulados locais.
+
 ## Cobertura parcial de risco
 
 Concentração por carteira, insiders, bundles, volume artificial e retirada de liquidez não são auditados. Não há nota de segurança ou probabilidade de lucro. A relação de compras/vendas usa **quantidade de transações**, não valores financeiros comprados e vendidos.
@@ -59,7 +69,7 @@ O Game Sniper e seus registros foram preservados como espaço exclusivo do admin
 
 Perfil ativo: `supabase/functions/pump-radar/free-core.ts`; coletor: `index.ts`. `core.ts` mantém utilitários e perfil GMGN legado, que não coleta dados nesta instalação. O processo Python legado não está ativado.
 
-Infraestrutura versionada: `supabase_pump.sql`, `supabase_runtime.sql`, `free_market.sql` e `users_notifications.sql`. Não reaplique sem conferir as migrações existentes. Limites ficam em `freeRules`, exigindo novo deploy quando alterados.
+Infraestrutura versionada: `supabase_pump.sql`, `supabase_runtime.sql`, `free_market.sql`, `users_notifications.sql` e `signal_history.sql`. Não reaplique sem conferir as migrações existentes. Limites ficam em `freeRules`, exigindo novo deploy quando alterados.
 
 ```bash
 python -m pytest -q

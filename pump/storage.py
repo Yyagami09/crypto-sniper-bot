@@ -3,6 +3,7 @@ import sqlite3
 import time
 import urllib.error
 import urllib.request
+from datetime import datetime, timezone
 from pathlib import Path
 
 from pump.config import ROOT
@@ -105,6 +106,11 @@ class PublicMarketStore(SupabaseStore):
         if not isinstance(rows, list) or len(rows) != 1:
             raise StorageError('Feed de mercado aguardando publicação')
         return rows[0]['payload']
+
+    def read_history(self, now, page=0, size=30):
+        since = datetime.fromtimestamp(now-86400, timezone.utc).isoformat().replace('+00:00','Z')
+        return self.request('pump_signal_history?select=id,confirmed_at,address,payload,rules'
+            f'&confirmed_at=gte.{since}&order=confirmed_at.desc,id.desc&limit={size+1}&offset={max(0,page)*size}')
 
 
 def make_store(config, demo=False):
