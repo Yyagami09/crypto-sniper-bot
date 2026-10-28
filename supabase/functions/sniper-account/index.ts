@@ -1,3 +1,4 @@
+import {analyzeManual,parseManualInput} from './manual.ts';
 import {ApiError,validUsername,validPassword,matchingStart,publicConnection} from './core.ts';
 const base=Deno.env.get('SUPABASE_URL')!,service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const reply=(data:any,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'no-store'}});
@@ -45,6 +46,21 @@ Deno.serve(async req=>{
   if(!profile?.active)throw new ApiError('access_denied',403);
   const uid=u.id,action=body.action;
   if(action==='session')return reply({profile});
+  if(action==='analyze_contract'){
+   parseManualInput(body.chain,body.input);
+   if(!['general','risk','reentry'].includes(body.objective))throw new ApiError('invalid_request');
+   if(!await db('rpc/sniper_reserve_manual',{p_user:uid}))throw new ApiError('manual_cooldown',429);
+   const get=async(url:string,timeout:number)=>{
+    const r=await fetch(url,{headers:{Accept:'application/json'},signal:AbortSignal.timeout(timeout)});
+    if(!r.ok)throw new ApiError('market_unavailable');return await r.json();
+   };
+   const rpc=async(addresses:string[])=>{
+    const r=await fetch('https://api.mainnet.solana.com',{method:'POST',headers:{'Content-Type':'application/json'},
+     body:JSON.stringify({jsonrpc:'2.0',id:1,method:'getMultipleAccounts',params:[addresses,{encoding:'jsonParsed',commitment:'confirmed'}]}),signal:AbortSignal.timeout(6000)});
+    const j=await r.json();if(!r.ok||j.error||!Array.isArray(j.result?.value))throw new ApiError('market_unavailable');return j.result.value;
+   };
+   return reply({analysis:await analyzeManual(body,db,get,rpc)});
+  }
   if(action==='radar_mode'){
    if(!['classic','early-v1'].includes(body.mode))throw new ApiError('invalid_request');
    const rows=await db('sniper_profiles?id=eq.'+uid,{radar_mode:body.mode,radar_mode_since:new Date().toISOString()},'PATCH');

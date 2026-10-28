@@ -333,7 +333,7 @@ for key, label, icon, state_key in nav_items_sub:
     if st.session_state[state_key] == label and st.session_state.modulo_ativo == "Game Sniper":
         icon_css.append(selector + ''' { background: #142027 !important; border-left-color: #00DCB0 !important; color: #8AF5F0 !important; }''')
 
-st.markdown(sidebar_css + '<style>' + '\n'.join(icon_css) + '</style>', unsafe_allow_html=True)
+st.markdown(sidebar_css + '<style>[class*="st-key-dex_subnav"]{margin-left:12px;border-left:1px solid #2b4248;padding-left:8px}[class*="st-key-dex_subnav"] button{font-size:13px!important}' + '\n'.join(icon_css) + '</style>', unsafe_allow_html=True)
 
 with st.sidebar:
     with st.container(key="sniper_brand"):
@@ -354,6 +354,10 @@ with st.sidebar:
             
         st.button(display_label, key=key, use_container_width=True, on_click=nav_main, args=(label,))
         
+        if label == "Dex Sniper" and st.session_state.modulo_ativo in ("Dex Sniper", "Analisar contrato"):
+            with st.container(key='dex_subnav'):
+                st.button('Radar',key='nav_dex_radar',use_container_width=True,on_click=nav_main,args=('Dex Sniper',))
+                st.button('Analisar contrato',key='nav_contract',use_container_width=True,on_click=nav_main,args=('Analisar contrato',))
         if label == "Game Sniper" and st.session_state.menu_expandido:
             for sub_key, sub_label, sub_icon, sub_state_key in nav_items_sub:
                 st.button(sub_label, key=sub_key, use_container_width=True, on_click=nav_sub, args=(sub_label,))
@@ -391,6 +395,10 @@ elif modulo == 'Notificações':
 elif modulo == "Pump Trader":
     st.markdown("<div class='breadcrumb'>⚡ Pump Trader / <span>Em breve</span></div>", unsafe_allow_html=True)
     st.markdown("<h1 class='main-title'>Pump Trader</h1><p class='sub-title'>Módulo dedicado aos lançamentos na Pump.fun (Em construção).</p>", unsafe_allow_html=True)
+
+elif modulo == "Analisar contrato":
+    from pump.manual import render
+    render()
 
 elif modulo == "Dex Sniper":
     from pump.dashboard import render

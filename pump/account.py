@@ -10,6 +10,10 @@ class AccountError(RuntimeError):
 
 
 ERRORS = {
+    'manual_cooldown': 'Aguarde 30 segundos entre análises para respeitar os limites das fontes gratuitas.',
+    'invalid_contract': 'Confira o contrato, a rede selecionada ou o link do DEX Screener.',
+    'token_not_found': 'Não foi encontrada uma pool com esse token como ativo principal nesta rede. Confira a rede e o contrato ou cole o link do par.',
+    'market_unavailable': 'A fonte de mercado não respondeu ou está limitando consultas. Tente novamente mais tarde.',
     'unauthorized': 'Sua sessão expirou. Entre novamente.',
     'access_denied': 'Esta conta está desativada ou não tem acesso.',
     'admin_required': 'Somente o administrador pode fazer isso.',
@@ -54,7 +58,7 @@ def action(name, **payload):
     try:
         r = requests.post(cfg['SUPABASE_URL'].rstrip('/')+'/functions/v1/sniper-account',
             headers={'Authorization': 'Bearer '+session.get('access_token', '')},
-            json={'action': name, **payload}, timeout=25)
+            json={'action': name, **payload}, timeout=45 if name=='analyze_contract' else 25)
         result = r.json()
         if not r.ok:
             raise AccountError(ERRORS.get(result.get('error'), 'Não foi possível concluir a operação. Tente novamente.'))
