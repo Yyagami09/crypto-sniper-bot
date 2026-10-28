@@ -16,9 +16,19 @@ def stamp(value):
 
 def render():
     load_dotenv(ROOT / '.env')
-    st.markdown("<div class='breadcrumb'>🚀 Dex Sniper / <span>Radar gratuito</span></div>", unsafe_allow_html=True)
-    st.markdown("<h1 class='main-title'>Seu radar de memecoins</h1><p class='sub-title'>Descoberta automática com fontes públicas. Sem depósito, sem chave GMGN e sem ordens de compra.</p>", unsafe_allow_html=True)
-    demo = st.toggle('Visualizar demonstração com dados simulados', key='pump_demo')
+    from pump.dashboard_ui import CSS
+    from pump.networks import NETWORKS
+    st.markdown(CSS,unsafe_allow_html=True)
+    title,network,options = st.columns([3,1.4,.8],vertical_alignment='center')
+    with title:
+        st.markdown("<div class='dex-workspace-head'><h1>Dex Sniper</h1><p>Seu radar de memecoins, em um só lugar.</p></div>",unsafe_allow_html=True)
+    with options,st.popover('Opções',use_container_width=True):
+        demo = st.toggle('Visualizar demonstração com dados simulados',key='pump_demo')
+        st.caption('A demonstração usa exemplos fictícios. Não envia mensagens nem executa ordens.')
+    with network:
+        chain = st.selectbox('Rede blockchain',list(NETWORKS),format_func=NETWORKS.get,key='dex_network',disabled=demo,label_visibility='collapsed')
+    if demo:
+        chain='solana'
     try:
         secrets = dict(st.secrets)
     except Exception:
@@ -38,9 +48,6 @@ def render():
             from pump.demo import seed_demo
             if not seed_demo(store, rules):
                 st.info('Aguarde a varredura de demonstração terminar.')
-    from pump.networks import NETWORKS
-    chain = 'solana' if demo else st.selectbox('Rede blockchain',list(NETWORKS),format_func=NETWORKS.get,key='dex_network')
-    st.caption('O painel atualiza a cada 15 segundos. A coleta automática ocorre a cada 1 minuto, mesmo com a aba fechada.')
     _body(store, rules, demo, bool(config.get('TELEGRAM_BOT_TOKEN') and config.get('TELEGRAM_CHAT_ID')), chain)
 
 
@@ -65,39 +72,24 @@ def _body(store, rules, demo, telegram_configured, chain='solana'):
         return
     now = time.time()
     run = state.get('run', {})
-    latest = run.get('completed_at', run.get('started_at', 0))
-    if demo:
-        st.info('Modo demonstração. Nenhuma consulta ou mensagem externa é enviada.')
-    elif run.get('status') == 'missing_key':
-        st.warning('A versão anterior aguardava uma chave. Aguarde a atualização do coletor gratuito.')
-    elif not latest:
-        st.warning('O coletor gratuito ainda não publicou a primeira varredura. Aguarde o próximo ciclo.')
-    elif run.get('status') == 'error':
-        st.error(f"Varredura interrompida ({run.get('error', 'erro')}). Nova tentativa após {stamp(state.get('backoff_until'))}.")
-    elif now-latest > max(180, run.get('rules', {}).get('interval_seconds', 60)*3):
-        st.warning('Sem atualização recente do radar. Confira o processo antes de usar os dados.')
-    else:
-        st.success('Varredura em andamento' if run.get('status') == 'running' else 'Radar atualizou recentemente')
-    if not demo:
-        st.info('Triagem parcial: LP e concentração reportada passam por filtros de risco. A venda não é simulada; insiders, bundles e wash trading não são auditados. Movimentos de grandes carteiras são variações de saldo de uma amostra.')
-        for issue in run.get('source_errors', []):
-            st.warning(str(issue))
-    st.caption(f"Último ciclo: {stamp(latest)} · Tokens consultados no ciclo: {run.get('checked', 0)} · Falhas: {run.get('errors', 0)} · Horários de Brasília")
-    if run.get('completed_at') and run.get('started_at'):
-        st.caption(f"Duração da coleta: {max(0, run['completed_at']-run['started_at']):.1f}s · Frequência prevista: {run.get('rules', {}).get('interval_seconds', 60)}s · Confirmação: mínimo de 4 minutos")
+    from pump.dashboard_ui import status_line,operation_details
+    status_line(run,now,stamp,demo)
     tokens = list(state.get('tokens', {}).values())
-    a,b,c,d = st.columns(4)
-    a.metric('Em acompanhamento', len(tokens))
-    b.metric('Sinais de mercado recentes', sum(t.get('status') == 'candidate' and now-t.get('last_checked',0) <= run.get('rules', {}).get('confirmation_max_seconds', 1200) for t in tokens))
-    c.metric('Rejeitadas pelos filtros', sum(t.get('status') == 'blocked' for t in tokens))
-    d.metric('Alertas nas últimas 24h', sum(now-x['created_at'] <= 86400 for x in state['alerts']))
-    from pump.browser_alerts import render_browser_alerts
-    render_browser_alerts(state['alerts'], demo)
+    metrics=[('Em acompanhamento',len(tokens)),
+        ('Sinais de mercado recentes',sum(t.get('status')=='candidate' and now-t.get('last_checked',0)<=run.get('rules',{}).get('confirmation_max_seconds',1200) for t in tokens)),
+        ('Rejeitadas pelos filtros',sum(t.get('status')=='blocked' for t in tokens)),
+        ('Alertas nas últimas 24h',sum(now-x['created_at']<=86400 for x in state['alerts']))]
+    for i,(column,(label,value)) in enumerate(zip(st.columns(4),metrics)):
+        with column,st.container(border=True,key='dex_summary_'+str(i)):
+            st.metric(label,value)
     radar_tab, history_tab, alerts_tab, config_tab = st.tabs(['📡 Radar', '⛏️ Achados · 24h', '🔔 Alertas', '⚙️ Critérios e operação'])
     with history_tab:
         from pump.signal_history import render_history
         render_history(store,state,now,demo)
     with alerts_tab:
+        with st.expander('Som e notificações do navegador'):
+            from pump.browser_alerts import render_browser_alerts
+            render_browser_alerts(state['alerts'], demo)
         if not run.get('telegram_configured', telegram_configured) and not demo:
             st.info('Para receber avisos com o painel fechado, conecte seu bot pessoal no menu Notificações.')
         alerts = sorted(state['alerts'], key=lambda a:a['created_at'], reverse=True)[:50]
@@ -123,6 +115,11 @@ def _body(store, rules, demo, telegram_configured, chain='solana'):
         from pump.radar_cards import render_radar
         render_radar(tokens, run.get('rules') or {}, now, demo)
     with config_tab:
+        st.subheader('Operação do radar')
+        operation_details(run,stamp)
+        with st.expander('Cobertura e limites da análise'):
+            st.write('Triagem parcial: LP e concentração reportada passam por filtros de risco. A venda não é simulada; insiders, bundles e wash trading não são auditados. Movimentos de grandes carteiras são variações de saldo de uma amostra.')
+        st.subheader('Critérios de análise')
         st.write('Os limites iniciais são hipóteses de triagem. Ainda não foram calibrados para demonstrar rentabilidade.')
         from dataclasses import asdict
         st.json(run.get('rules') or asdict(rules))
