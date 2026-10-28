@@ -34,7 +34,7 @@ export async function scanNetwork(network:any,previous:any,get:any,profiles:any[
  let tokens:any=Object.fromEntries(Object.entries<any>(previous?.tokens||{}).filter(([a,t])=>evmAddress(a)&&t.snapshot?.chain_id===network.id&&started-t.first_seen<86400));
  const discovered:any[]=[];
  try{
-  const response=await get(`https://api.geckoterminal.com/api/v2/networks/${network.gecko}/new_pools`,3000);
+  const response=await get(`https://api.geckoterminal.com/api/v2/networks/${network.gecko}/new_pools`,8000);
   if(!Array.isArray(response.data))throw Error('schema');
   for(const row of response.data){
    const id=row.relationships?.base_token?.data?.id,prefix=network.gecko+'_';
@@ -53,7 +53,7 @@ export async function scanNetwork(network:any,previous:any,get:any,profiles:any[
  const addresses=Object.keys(tokens).slice(0,15);let checked=0;
  if(addresses.length){
   try{
-   const pairs=await get(`https://api.dexscreener.com/tokens/v1/${network.id}/${addresses.join(',')}`,3000);
+   const pairs=await get(`https://api.dexscreener.com/tokens/v1/${network.id}/${addresses.join(',')}`,4000);
    if(!Array.isArray(pairs))throw Error('schema');
    const byToken:any={};
    for(const pair of pairs){
@@ -83,9 +83,9 @@ export async function collectNetworks(state:any,get:any,profiles:any[],clock:()=
  state.networks||={};
  const ordered=[...networkCatalog].sort((a,b)=>(state.networks[a.id]?.run?.completed_at||0)-(state.networks[b.id]?.run?.completed_at||0));
  // Small batches keep free endpoints bounded. Primary Solana alerts are already sent.
- for(let i=0;i<ordered.length;i+=2){
+ for(let i=0;i<ordered.length;i+=3){
   if(clock()-started>85)break;
-  const batch=ordered.slice(i,i+2);
+  const batch=ordered.slice(i,i+3);
   const results=await Promise.allSettled(batch.map(c=>scanNetwork(c,state.networks[c.id],get,profiles,clock,rules)));
   results.forEach((result,index)=>{if(result.status==='fulfilled')state.networks[batch[index].id]=result.value;});
  }
