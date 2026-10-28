@@ -18,6 +18,7 @@ CSS = '''<style>
 .dex-score-row{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-top:4px}.dex-score-label{font-size:12px;color:#a2b3c0}.dex-score{font-size:24px;font-weight:750;color:#eaf5f3}.dex-score small{font-size:12px;color:#91a5b5;font-weight:400}.dex-score-pending{font-size:13px;color:#d3b88b}
 .dex-bar{height:5px;border-radius:4px;overflow:hidden;background:#273540;margin:8px 0 5px}.dex-bar span{display:block;height:100%;background:#38c8b0}.dex-caption{font-size:11px;color:#8fa4b4;line-height:1.5}
 .dex-facts{display:grid;grid-template-columns:1fr 1fr;gap:13px 12px;border-top:1px solid #293541;margin-top:14px;padding-top:14px}.dex-fact-label{font-size:11px;color:#93a8b8}.dex-fact-value{font-size:16px;color:#edf4f9;font-weight:650;margin-top:3px;overflow-wrap:anywhere}.dex-missing{border-top:1px solid #293541;margin-top:14px;padding-top:12px;font-size:12px;color:#c9d5df;min-height:44px;line-height:1.6}.dex-timestamp{font-size:11px;color:#8b9faf;margin:10px 0 4px}
+.dex-risk{font-size:12px;line-height:1.5;padding:9px 10px;border:1px solid #6b5835;border-radius:7px;margin:2px 0 12px;color:#e0c692;background:#5d452018}.dex-risk.blocked{color:#ffb0ba;border-color:#9f4252;background:#ac344319}.dex-risk.reviewed{color:#bbcbd4;border-color:#3c535e;background:#1c343e33}.dex-whales{font-size:12px;line-height:1.6;border-top:1px solid #35424b;padding-top:10px;margin-top:10px;color:#becfe0}
 [class*="st-key-dex_card_gold_"]{position:relative;isolation:isolate;overflow:hidden;background:radial-gradient(ellipse at 95% 0%,#76501e55,transparent 55%),linear-gradient(145deg,#2d2414,#191a15 60%,#242015)!important;border:1px solid #d5a849!important;box-shadow:0 0 0 1px #f9d76c1a,inset 0 1px 0 #fff1b733,0 8px 30px #d5a34220!important;animation:dex-gold-arrival .85s ease-out both}
 [class*="st-key-dex_card_gold_"]:hover{border-color:#ffe29a!important;box-shadow:0 0 0 1px #ffdd7540,0 10px 36px #d5a34230!important}
 [class*="st-key-dex_card_gold_"]::before{content:"";position:absolute;pointer-events:none;z-index:0;top:-20%;left:-90%;width:60%;height:140%;background:linear-gradient(90deg,transparent,#fff0b31c,transparent);transform:rotate(18deg);animation:dex-gold-sweep 1.6s .15s ease-out both}
@@ -75,6 +76,15 @@ def card_markup(token, model, historical=False):
     name = html.escape(str(s.get('name') or 'Nome indisponível'))
     badge_class = 'incomplete' if model['stale'] else status
     subtitle = html.escape('Solana · '+age_label(model['age_minutes']))
+    risk = s.get('risk') or {}
+    risk_status = risk.get('status') if risk.get('status') in ('blocked','reviewed') else 'pending'
+    risk_label = {'blocked':'⛔ Risco crítico ou atividade atípica · sinal bloqueado','pending':'⏳ Camada de risco pendente · sinal retido',
+                  'reviewed':'Triagem de risco parcial concluída · venda não simulada'}[risk_status]
+    if risk.get('slow_rug',{}).get('status')=='warning':
+        risk_label='⛔ Possível retirada gradual de liquidez · sinal retido'
+    if historical and not risk:
+        risk_label = 'Confirmação anterior à camada de risco · dados históricos'
+    risk_markup = f'<div class="dex-risk {risk_status}">{html.escape(risk_label)}</div>'
     if model['score'] is None:
         score = f'<div class="dex-score-pending">{html.escape(model["issue"])}</div>'
         progress = '<div class="dex-caption">A nota depende de dados completos e verificações válidas.</div>'
@@ -104,10 +114,18 @@ def card_markup(token, model, historical=False):
         note = 'Falta atender: '+', '.join(missing) if missing else 'Confira as verificações nos detalhes.'
     if historical:
         note = 'Dados preservados da confirmação. A situação atual pode ter mudado.'
+    whales = s.get('whales') or {}
+    whale_text = {'observing':'Grandes carteiras: coletando comparação de saldos','unchanged':'Grandes carteiras: saldos estáveis na amostra',
+                  'unavailable':'Grandes carteiras: dados indisponíveis'}.get(whales.get('status'),'Grandes carteiras: dados indisponíveis')
+    if whales.get('status')=='changes':
+        whale_text = f'Grandes carteiras: {int(whales.get("increases",0))} aumentando · {int(whales.get("decreases",0))} reduzindo saldo'
+    if whales.get('gradual_reductions'):
+        whale_text += f' · redução gradual em {int(whales["gradual_reductions"])} carteira(s)'
+    whale_markup = f'<div class="dex-whales">{html.escape(whale_text)}<div class="dex-caption">Indicador complementar · não altera a nota</div></div>'
     score_label = 'Aderência na confirmação' if historical else 'Aderência aos critérios'
     time_label = 'Dados na confirmação' if historical else 'Consulta'
     celebration = '<div class="dex-find"><span class="dex-find-icon" aria-hidden="true">⛏️</span><div><div class="dex-find-title">ACHADO NO GARIMPO</div><div class="dex-find-subtitle">7/7 critérios · duas consultas válidas</div></div><span class="dex-gold-sparks" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span></div>' if confirmed_find(token,model) else ''
-    return f'{celebration}<div class="dex-head"><div><div class="dex-symbol">{symbol}</div><div class="dex-name">{name}</div></div></div><div class="dex-status {badge_class}">{html.escape(label)}</div><div class="dex-caption">{subtitle}</div><div class="dex-score-row"><span class="dex-score-label">{score_label}</span>{score}</div>{progress}<div class="dex-facts">{grid}</div><div class="dex-missing">{html.escape(note)}</div><div class="dex-timestamp">{time_label}: {stamp(s.get("observed_at"))} · Brasília</div>'
+    return f'{celebration}<div class="dex-head"><div><div class="dex-symbol">{symbol}</div><div class="dex-name">{name}</div></div></div><div class="dex-status {badge_class}">{html.escape(label)}</div>{risk_markup}<div class="dex-caption">{subtitle}</div><div class="dex-score-row"><span class="dex-score-label">{score_label}</span>{score}</div>{progress}<div class="dex-facts">{grid}</div><div class="dex-missing">{html.escape(note)}</div>{whale_markup}<div class="dex-timestamp">{time_label}: {stamp(s.get("observed_at"))} · Brasília</div>'
 
 
 def details(token, model):
@@ -118,6 +136,35 @@ def details(token, model):
             mark = '✅' if check['passed'] is True else '❌' if check['passed'] is False else '➖'
             st.text(f'{mark} {check["label"]}: {check["value"]} · {check["target"]}')
         st.markdown('**Verificações e situação registrada**')
+        risk = s.get('risk') or {}
+        st.caption('Venda não simulada. Triagem parcial; não comprova ausência de honeypot ou manipulação.')
+        if risk:
+            st.caption('Consulta do relatório: '+stamp(risk.get('report_fetched_at'))+' · pode estar em cache na origem. LP na cadeia: '+(stamp(risk.get('checked_at')) if risk.get('lp_chain_checked') else 'consulta indisponível'))
+            for label,field in [('LP reportada travada/queimada','lp_locked_pct'),('Tokens de LP circulantes na carteira do criador (amostra)','creator_lp_pct'),('Participação estimada do criador na oferta de referência da LP','creator_pool_claim_pct'),('Top 10 fora das pools, reportado','top10_ex_pool_pct')]:
+                value = number(risk.get(field))
+                st.text(label+': '+('Indisponível' if value is None else f'{value:.2f}%'))
+            for reason in risk.get('reasons',[])+risk.get('warnings',[]):
+                st.text('• '+str(reason))
+            trend = risk.get('slow_rug') or {}
+            st.caption('Retirada gradual: '+{'collecting':'coletando observações','no_pattern':'sem padrão detectado na janela','warning':'padrão atípico detectado'}.get(trend.get('status'),'dados indisponíveis'))
+            if trend.get('observations'):
+                st.caption(f"{trend['observations']} observações · janela de {trend.get('window_minutes',0):.0f} min. Ausência de padrão não comprova ausência de slow rug.")
+        st.markdown('**Movimentação de grandes carteiras**')
+        whales = s.get('whales') or {}
+        st.caption('Até 5 contas de detentores fora das pools. Destaque para ≥1% da oferta ou saldo estimado de ≥US$ 10 mil. Variação de saldo pode ser transferência; não comprova compra/venda e não altera os sete critérios.')
+        items = whales.get('items',[])
+        if items:
+            rows = []
+            for item in items:
+                delta = number(item.get('delta_usd'))
+                rows.append({'Carteira':item['wallet'],'Contas monitoradas':item.get('account_count'),
+                    '% da oferta na amostra':item.get('pct_supply'),'Saldo estimado (USD)':item.get('value_usd'),
+                    'Variação de saldo (tokens)':item.get('delta_tokens'),'Variação estimada ao preço atual (USD)':delta,
+                    'Leitura':{'baseline':'Aguardando comparação','increase':'Saldo aumentou','decrease':'Saldo diminuiu','unchanged':'Saldo estável'}.get(item.get('direction'),'Indisponível'),
+                    'Redução gradual na janela':bool(item.get('gradual_reduction'))})
+            st.dataframe(rows,hide_index=True,use_container_width=True)
+        else:
+            st.caption('Sem comparação disponível nesta consulta. Ausência de dados não significa ausência de grandes carteiras.')
         for reason in token.get('reasons', []):
             st.text('• '+str(reason))
         st.caption('Descoberta: '+stamp(token.get('first_seen')))

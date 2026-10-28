@@ -51,7 +51,8 @@ def render_history(store, state, now, demo=False):
             # This represents the recorded event, not a new live classification.
             t = {'address':a['address'],'status':'candidate','snapshot':a['snapshot'],
                  'reasons':a.get('reasons',[]),'first_seen':a['created_at']}
-            model = adherence(t,row.get('rules') or {},a['created_at'])
+            recorded_rules = row.get('rules') or {}
+            model = adherence(t,recorded_rules,a['created_at'],require_risk=bool(recorded_rules.get('risk_policy')))
             with column, st.container(border=True,key='dex_card_gold_history_'+a['id']):
                 st.markdown(card_markup(t,model,historical=True),unsafe_allow_html=True)
                 st.caption('Confirmado: '+stamp(a['created_at']))

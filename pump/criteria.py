@@ -11,7 +11,7 @@ def number(value):
     return value if math.isfinite(value) else None
 
 
-def adherence(token, rules, now):
+def adherence(token, rules, now, require_risk=True):
     s = token.get('snapshot') or {}
     def val(key):
         return number(s.get(key))
@@ -48,11 +48,15 @@ def adherence(token, rules, now):
     max_age = number(rules.get('confirmation_max_seconds')) or 1200
     stale = observed is not None and now-observed>max_age
     status = token.get('status', 'queued')
+    risk = s.get('risk') or {}
+    risk_checked = number(risk.get('checked_at'))
     issue = None
-    if status=='blocked' or s.get('mint_disabled') is False or s.get('freeze_disabled') is False:
+    if status=='blocked' or risk.get('status')=='blocked' or s.get('mint_disabled') is False or s.get('freeze_disabled') is False:
         issue = 'Bloqueada pelas verificações'
     elif stale:
         issue = 'Consulta antiga'
+    elif require_risk and (risk.get('version')!='risk-v1' or risk.get('status')!='reviewed' or risk.get('lp_chain_checked') is not True or risk_checked is None or not 0<=now-risk_checked<=1200):
+        issue = 'Pontuação pendente · camada de risco'
     elif (status in ('incomplete','queued') or s.get('profile')!='free-market-v1' or
           any(c['passed'] is None for c in checks) or s.get('mint_disabled') is not True or
           s.get('freeze_disabled') is not True or s.get('extensions_review') is not False or

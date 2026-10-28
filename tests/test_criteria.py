@@ -14,6 +14,7 @@ def token():
         'profile':'free-market-v1','observed_at':NOW,'price':.001,
         'liquidity':25000,'volume_5m':5000,'buy_count_5m':12,'sell_count_5m':10,
         'change_5m':2,'pool_created_at':NOW-900,'valuation':100000,
+        'risk':{'version':'risk-v1','status':'reviewed','checked_at':NOW,'lp_chain_checked':True},
         'valuation_type':'FDV','mint_disabled':True,'freeze_disabled':True,'extensions_review':False}}
 
 
@@ -69,6 +70,16 @@ def test_staleness_and_age_use_the_recorded_observation():
 
 def test_missing_rules_are_pending_rather_than_using_hidden_defaults():
     assert adherence(token(),{},NOW)['score'] is None
+
+
+def test_risk_gate_hides_a_full_market_score_and_unverified_risk_stays_pending():
+    t=token()
+    t['snapshot']['risk']['status']='blocked'
+    model=adherence(t,RULES,NOW)
+    assert model['passed']==7 and model['score'] is None
+    t['snapshot'].pop('risk')
+    assert adherence(t,RULES,NOW)['score'] is None
+    assert adherence(t,RULES,NOW,require_risk=False)['score']==100  # Legacy historical event.
 
 
 def test_card_escapes_provider_text_and_builds_only_dex_links():

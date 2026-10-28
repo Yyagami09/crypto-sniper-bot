@@ -2,6 +2,8 @@
 
 O Dex Trade usa **DEX Screener + GeckoTerminal + RPC público da Solana**. Não requer API Key de mercado, carteira, depósito ou saldo mínimo. A coleta GMGN está desativada nesta instalação.
 
+A versão atual também consulta relatórios públicos RugCheck e saldos de uma amostra de grandes detentores. Risco, limitações, cache e indícios de slow rug estão documentados em [RISCO_E_CARTEIRAS.md](RISCO_E_CARTEIRAS.md). A camada de risco é obrigatória para novas confirmações; o indicador de carteiras é complementar.
+
 O painel continua no Streamlit e a coleta roda no Supabase a cada **5 minutos**, mesmo com a aba fechada. Nenhuma nova assinatura foi contratada. O funcionamento depende das cotas gratuitas e disponibilidade dos provedores, que podem mudar ou limitar respostas.
 
 ## O que funciona
@@ -35,7 +37,7 @@ Os eventos ficam na tabela `pump_signal_history`, com leitura para contas ativas
 
 ## Cobertura parcial de risco
 
-Concentração por carteira, insiders, bundles, volume artificial e retirada de liquidez não são auditados. Não há nota de segurança ou probabilidade de lucro. A relação de compras/vendas usa **quantidade de transações**, não valores financeiros comprados e vendidos.
+Há triagem de concentração reportada, LP e atividade atípica, mas não auditoria completa de carteiras, insiders, bundles, volume artificial ou retirada de liquidez. Não há nota de segurança ou probabilidade de lucro. A relação de compras/vendas usa **quantidade de transações**, não valores financeiros comprados e vendidos. Venda não é simulada.
 
 Duas consultas não são evidências estatísticas independentes. O horário mostrado é o da consulta, não garantia de atualização na origem. A descoberta não cobre todo o mercado. O RPC público é compartilhado, tem limites e não tem garantia de disponibilidade.
 
@@ -73,7 +75,7 @@ Infraestrutura versionada: `supabase_pump.sql`, `supabase_runtime.sql`, `free_ma
 
 ```bash
 python -m pytest -q
-node --test tests/core.test.mjs tests/free-core.test.mjs tests/notifications.test.mjs
+node --test tests/core.test.mjs tests/free-core.test.mjs tests/notifications.test.mjs tests/risk-whales.test.mjs
 ```
 
 Fontes oficiais:

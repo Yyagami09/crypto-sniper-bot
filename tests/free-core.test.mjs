@@ -4,7 +4,7 @@ import {fromDex,mintCheck,evaluateFree,applyFree,publicFeed,updateOutcomes} from
 const now=2000000000,a='2'.repeat(32),pool='3'.repeat(32);
 const account={owner:'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',data:{parsed:{type:'mint',info:{isInitialized:true,mintAuthority:null,freezeAuthority:null}}}};
 const pair={chainId:'solana',pairAddress:pool,baseToken:{address:a,symbol:'TEST',name:'Teste'},priceUsd:'0.001',marketCap:null,fdv:1000000,liquidity:{usd:50000},volume:{m5:8000},txns:{m5:{buys:20,sells:10}},priceChange:{m5:10},pairCreatedAt:(now-3600)*1000};
-const snap=()=>fromDex(a,pair,account,now);
+const snap=()=>({...fromDex(a,pair,account,now),risk:{version:'risk-v1',status:'reviewed',checked_at:now,lp_chain_checked:true}});
 test('FDV is labelled and never masquerades as market cap',()=>{const s=snap();assert.equal(s.market_cap,null);assert.equal(s.valuation_type,'FDV');assert.equal(evaluateFree(s,null,now).status,'qualified');});
 test('counts are counts, unavailable trade amounts not invented',()=>{const s=snap();assert.equal(s.buy_count_5m,20);assert.equal(s.buy_volume_5m,undefined);assert.equal(s.top10,undefined);});
 test('missing mint authorities never become safe',()=>{const s=fromDex(a,pair,null,now);assert.equal(s.mint_disabled,null);assert.equal(evaluateFree(s,null,now).status,'incomplete');});

@@ -27,10 +27,10 @@ test('connection status never exposes the token, chat ID or Vault secret',()=>{
 });
 const now=2000000000;
 const connection={user_id:'u1',enabled:true,connected_at:new Date((now-600)*1000).toISOString(),chat_id:42,token:'PRIVATE_TOKEN'};
-const alert={id:'a1',kind:'candidate',created_at:now-60,address:'A',snapshot:{profile:'free-market-v1',symbol:'TEST'},reasons:['partial']};
+const alert={id:'a1',kind:'candidate',created_at:now-60,address:'A',snapshot:{profile:'free-market-v1',symbol:'TEST',pair_address:'POOL',risk:{version:'risk-v1',status:'reviewed'}},reasons:['partial']};
 test('personal delivery skips old, demo, sent and not-yet-due events and persists an attempt before sending',async()=>{
  const writes=[],sent=[];
- const state={alerts:[alert,{...alert,id:'old',created_at:now-700},{...alert,id:'demo',snapshot:{profile:'demo'}}]};
+ const state={tokens:{A:{status:'candidate',snapshot:alert.snapshot}},alerts:[alert,{...alert,id:'old',created_at:now-700},{...alert,id:'demo',snapshot:{profile:'demo'}}]};
  const db=async(path,body,method)=>{
   if(path.startsWith('rpc/'))return [connection];
   if(body){writes.push({path,body,method});return [];}
@@ -41,13 +41,13 @@ test('personal delivery skips old, demo, sent and not-yet-due events and persist
  assert.ok(!sent[0].text.includes('PRIVATE_TOKEN'));
  for(const record of [{status:'sent',attempts:1},{status:'pending',attempts:3},{status:'pending',attempts:1,next_attempt:new Date((now+20)*1000).toISOString()}]){
   const once=async(path,body)=>path.startsWith('rpc/')?[connection]:body?[]:[{alert_id:'a1',...record}];
-  await deliverPersonal({alerts:[alert]},once,now,()=>{throw new Error('must not send');},()=>now);
+  await deliverPersonal({tokens:{A:{status:'candidate',snapshot:alert.snapshot}},alerts:[alert]},once,now,()=>{throw new Error('must not send');},()=>now);
  }
 });
 test('a blocked Telegram bot is disabled and does not retry forever',async()=>{
  const writes=[];
  const db=async(path,body)=>{if(path.startsWith('rpc/'))return [connection];if(body){writes.push({path,body});return [];}return [];};
- await deliverPersonal({alerts:[alert]},db,now,async()=>({status:403,json:async()=>({ok:false})}),()=>now);
+ await deliverPersonal({tokens:{A:{status:'candidate',snapshot:alert.snapshot}},alerts:[alert]},db,now,async()=>({status:403,json:async()=>({ok:false})}),()=>now);
  assert.ok(writes.some(w=>w.path.startsWith('sniper_telegram')&&w.body.enabled===false));
  assert.equal(writes.at(-1).body.status,'failed');
 });

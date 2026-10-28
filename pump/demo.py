@@ -53,6 +53,9 @@ def seed_demo(store, rules):
             token['snapshot'].update(profile='free-market-v1', pool_created_at=now-7200,
                 valuation=1100000,valuation_type='Market cap',buy_count_5m=20,sell_count_5m=10,
                 extensions_review=False)
+            token['snapshot']['risk']={'version':'risk-v1','status':'reviewed','checked_at':now,'lp_chain_checked':True,
+                'report_fetched_at':now,'report_source':'DEMONSTRAÇÃO — dados fictícios','reasons':[],'warnings':[],'sell_check':'not_simulated'}
+            token['snapshot']['whales']={'status':'observing','items':[],'increases':0,'decreases':0}
             if i==2:
                 token['snapshot']['freeze_disabled']=None
         state['run'] = {'demo': True, 'status': 'ok', 'checked': 4, 'errors': 0,

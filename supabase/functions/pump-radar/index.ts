@@ -1,6 +1,7 @@
 import {n,validAddress,event} from './core.ts';
 import {freeRules,fromDex,applyFree,updateOutcomes,publicFeed} from './free-core.ts';
 import {deliverPersonal} from './notifications.ts';
+import {enrichRisks} from './risk.ts';
 const now=()=>Date.now()/1000;
 const pause=(ms:number)=>new Promise(r=>setTimeout(r,ms));
 const respond=(data:any,status=200)=>Response.json(data,{status});
@@ -32,11 +33,15 @@ Deno.serve(async(req)=>{
    state.tokens={};state.alerts=[];state.backoff_until=0;state.profile='free-market-v1';
   }
   if(state.backoff_until>now())return respond({status:'cooldown'});
+  if(state.risk_policy!=='risk-v1'){
+   for(const t of Object.values<any>(state.tokens))t.qualified_at=0;
+   state.risk_policy='risk-v1';
+  }
   state.run={started_at:started,status:'running',demo:false,rules:freeRules,checked:0,errors:0,
    source_errors:[],engine:'supabase-free-market',telegram_configured:!!(cfg.telegram_token&&cfg.telegram_chat)};
   await commit();
-  const get=async(url:string)=>{
-   const r=await fetch(url,{headers:{Accept:'application/json'},signal:AbortSignal.timeout(10000)});
+  const get=async(url:string,timeout=10000)=>{
+   const r=await fetch(url,{headers:{Accept:'application/json'},signal:AbortSignal.timeout(timeout)});
    if(!r.ok)throw new Error('public_source_unavailable');return await r.json();
   };
   try{
@@ -76,17 +81,27 @@ Deno.serve(async(req)=>{
       body:JSON.stringify({jsonrpc:'2.0',id:1,method:'getMultipleAccounts',params:[addresses,{encoding:'jsonParsed',commitment:'confirmed'}]}),signal:AbortSignal.timeout(10000)});
      const j=await r.json();if(!r.ok||j.error||!Array.isArray(j.result?.value))throw new Error('rpc');accounts=j.result.value;
     }catch{state.run.source_errors.push('Solana RPC: permissões não puderam ser verificadas');}
+    const snapshots:any[]=[];
     for(let ix=0;ix<addresses.length;ix++){
      const a=addresses[ix],t=state.tokens[a];
      try{
       const snap=fromDex(a,byToken[a],accounts[ix],now());snap.sources.discovery=t.discovery_source;
-      applyFree(state,t,snap,now());
+      snapshots.push(snap);
      }catch{
       if(t.status==='candidate')event(state,t,'data_gap',['Dados de mercado indisponíveis'],now());
       t.status='incomplete';t.qualified_at=0;t.last_checked=now();t.reasons=['Pool não encontrada ou dados incompatíveis'];state.run.errors++;
      }
      state.run.checked++;
     }
+    const rpc=async(batch:string[])=>{
+     const r=await fetch('https://api.mainnet.solana.com',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({jsonrpc:'2.0',id:2,method:'getMultipleAccounts',params:[batch,{encoding:'jsonParsed',commitment:'confirmed'}]}),signal:AbortSignal.timeout(6000)});
+     const j=await r.json();if(!r.ok||j.error||!Array.isArray(j.result?.value))throw new Error('risk_rpc_unavailable');return j.result.value;
+    };
+    await enrichRisks(snapshots,state,(url:string)=>get(url,4000),rpc,now,started);
+    for(const snap of snapshots)applyFree(state,state.tokens[snap.address],snap,now());
+    const pendingRisk=snapshots.filter(s=>s.risk.status==='pending').length;
+    if(pendingRisk)state.run.source_errors.push(`${pendingRisk} tokens aguardam relatório/consulta de risco. Até 10 relatórios são consultados por ciclo; ausências não liberam sinais.`);
    }
    updateOutcomes(state,now());
    state.run.status=state.run.errors||state.run.source_errors.length?'partial':'ok';state.backoff_until=0;
@@ -97,12 +112,13 @@ Deno.serve(async(req)=>{
   let attempts=0;
   for(const a of state.alerts){
    if(a.delivery!=='pending')continue;
+   if(a.kind==='candidate'&&(a.snapshot.risk?.status!=='reviewed'||state.tokens[a.address]?.status!=='candidate'||state.tokens[a.address]?.snapshot?.risk?.status!=='reviewed')){a.delivery='expired';continue;}
    if(now()-a.created_at>1800){a.delivery='expired';continue;}
    if(!cfg.telegram_token||!cfg.telegram_chat||a.next_attempt>now()||attempts>=3||now()-started>100)continue;
    if(a.attempts>=3){a.delivery='failed';continue;}
    attempts++;a.attempts=(a.attempts||0)+1;
    const label=a.kind==='candidate'?'SINAL DE MERCADO — RISCO PARCIAL':a.kind;
-   const text=`Crypto Sniper gratuito | ${label}\n${a.snapshot.symbol||'?'} | Solana\nCA: ${a.address}\n${a.reasons.join('\n')}\nConsulta: ${new Date(a.created_at*1000).toISOString()}\nNão verifica insiders, concentração ou bundles. Sem previsão de lucro.\n${a.snapshot.pair_url}`;
+   const text=`Crypto Sniper gratuito | ${label}\n${a.snapshot.symbol||'?'} | Solana\nCA: ${a.address}\n${a.reasons.join('\n')}\nConsulta: ${new Date(a.created_at*1000).toISOString()}\nTriagem parcial. Venda não simulada; insiders e bundles não auditados. Sem previsão de lucro.\n${a.snapshot.pair_url}`;
    try{
     const r=await fetch(`https://api.telegram.org/bot${cfg.telegram_token}/sendMessage`,{method:'POST',headers:{'Content-Type':'application/json'},
      body:JSON.stringify({chat_id:cfg.telegram_chat,text,link_preview_options:{is_disabled:true}}),signal:AbortSignal.timeout(5000)});

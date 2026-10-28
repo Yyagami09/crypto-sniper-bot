@@ -8,6 +8,7 @@ from tests.test_criteria import NOW, RULES, token
 def record(created=NOW-3600):
     t=token()
     t['snapshot'].update(observed_at=created,pool_created_at=created-3600)
+    t['snapshot']['risk']['checked_at']=created
     return {'payload':{'id':'saved','kind':'candidate','address':t['address'],
         'created_at':created,'snapshot':t['snapshot'],'reasons':['Confirmado']},'rules':RULES}
 

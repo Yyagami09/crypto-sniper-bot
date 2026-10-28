@@ -1,11 +1,13 @@
 import {n,validAddress,event} from './core.ts';
+import {riskRules} from './risk.ts';
 export const freeRules={profile:'free-market-v1',interval_seconds:300,max_tracked:30,
  min_liquidity:25000,min_valuation:100000,max_valuation:10000000,min_pool_age_minutes:15,
  max_pool_age_minutes:10080,min_volume_5m:5000,min_transactions_5m:10,
  min_buy_sell_count_ratio:1.2,min_change_5m:2,max_change_5m:40,
- confirmation_min_seconds:240,confirmation_max_seconds:1200,liquidity_drop:.20};
-export const coverage=['Concentração por carteira não verificada','Insiders e bundles não verificados',
- 'Wash trading e retirada de liquidez não auditados','Preço consultado não é cotação de execução'];
+ confirmation_min_seconds:240,confirmation_max_seconds:1200,liquidity_drop:.20,risk_policy:riskRules.version,risk_limits:riskRules};
+export const coverage=['RugCheck pode retornar relatório em cache; concentração reportada não é auditoria completa',
+ 'Insiders, bundles e wash trading não auditados','Venda não simulada; preço consultado não é cotação de execução',
+ 'Movimentos de grandes detentores são variações de saldo de uma amostra, não compras/vendas comprovadas'];
 const nn=(x:any)=>{const v=n(x);return v!==null&&v>=0?v:null;};
 export function mintCheck(account:any){
  const allowedOwners=['TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA','TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'];
@@ -27,7 +29,9 @@ export function fromDex(a:string,p:any,account:any,now:number){
  market_cap:mc&&mc>0?mc:null,fdv:fdv&&fdv>0?fdv:null,
  valuation:mc&&mc>0?mc:fdv&&fdv>0?fdv:null,valuation_type:mc&&mc>0?'Market cap':'FDV',
  pool_created_at:created!==null?created/1000:null,volume_5m:nn(p.volume?.m5),
+ base_reserve:nn(p.liquidity?.base),quote_reserve:nn(p.liquidity?.quote),
  buy_count_5m:nn(p.txns?.m5?.buys),sell_count_5m:nn(p.txns?.m5?.sells),change_5m:n(p.priceChange?.m5),
+ supply_raw:account?.data?.parsed?.info?.supply,token_decimals:account?.data?.parsed?.info?.decimals,
  ...check,coverage:[...coverage],sources:{market:'DEX Screener — principal pool por liquidez',
  permissions:account?'Solana RPC público / getMultipleAccounts':'Solana RPC indisponível',discovery:'GeckoTerminal new pools e perfis recentes do DEX Screener'}};
 }
@@ -37,7 +41,10 @@ export function evaluateFree(s:any,prev:any,now:number){
  if(s.mint_disabled===false)blocked.push('Permissão de emissão adicional ainda habilitada');
  if(s.freeze_disabled===false)blocked.push('Permissão de congelamento ainda habilitada');
  if(prev?.liquidity>0&&s.liquidity!==null&&s.liquidity<prev.liquidity*(1-freeRules.liquidity_drop))blocked.push('Queda relevante de liquidez entre consultas');
+ if(s.risk?.version===riskRules.version&&s.risk.status==='blocked')blocked.push(...s.risk.reasons);
  if(blocked.length)return {status:'blocked',reasons:blocked,missing};
+ if(s.risk?.version!==riskRules.version||s.risk.status!=='reviewed'||s.risk.lp_chain_checked!==true||typeof s.risk.checked_at!=='number'||!Number.isFinite(s.risk.checked_at)||now-s.risk.checked_at>1200||s.risk.checked_at>now+30)
+  return {status:'incomplete',reasons:s.risk?.reasons?.length?s.risk.reasons:['Camada de risco pendente: LP, concentração e alertas externos ainda não verificados'],missing:[...missing,'risk_review']};
  if(s.extensions_review)missing.push('token_program_or_extensions');
  if(missing.length)return {status:'incomplete',reasons:['Verificação parcial pendente: '+missing.join(', ')],missing};
  const age=(now-s.pool_created_at)/60,reasons=[];
@@ -86,7 +93,7 @@ export function publicFeed(state:any){
  const snapshot=(s:any)=>Object.fromEntries(['address','symbol','name','profile','pair_address','pair_url',
   'observed_at','price','liquidity','market_cap','fdv','valuation','valuation_type','pool_created_at',
   'volume_5m','buy_count_5m','sell_count_5m','change_5m','mint_disabled','freeze_disabled',
-  'extensions_review','coverage','sources'].map(k=>[k,s[k]]));
+  'extensions_review','coverage','sources','risk','whales'].map(k=>[k,s[k]]));
  const tokens:any={};
  for(const [a,t] of Object.entries<any>(state.tokens||{})){
   if(t.snapshot?.profile!=='free-market-v1')continue;

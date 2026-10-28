@@ -6,7 +6,10 @@ export function notificationText(a:any){
 export async function deliverPersonal(state:any,db:any,started:number,send:any=fetch,clock=()=>Date.now()/1000){
  const connections=await db('rpc/sniper_telegram_credentials',{});
  const alerts=(state.alerts||[]).filter((a:any)=>a.snapshot?.profile==='free-market-v1'&&
-  ['candidate','conditions_lost','data_gap'].includes(a.kind)&&clock()-a.created_at<=1800);
+  ['candidate','conditions_lost','data_gap'].includes(a.kind)&&clock()-a.created_at<=1800&&
+  (a.kind!=='candidate'||a.snapshot.risk?.version==='risk-v1'&&a.snapshot.risk.status==='reviewed'&&
+   state.tokens?.[a.address]?.status==='candidate'&&state.tokens[a.address].snapshot?.risk?.status==='reviewed'&&
+   state.tokens[a.address].snapshot.pair_address===a.snapshot.pair_address));
  let attempted=0;
  for(const c of connections){
   if(!c.enabled||!c.connected_at||!c.chat_id)continue;

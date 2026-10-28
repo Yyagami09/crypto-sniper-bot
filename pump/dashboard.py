@@ -73,7 +73,7 @@ def _body(store, rules, demo, telegram_configured):
     else:
         st.success('Varredura em andamento' if run.get('status') == 'running' else 'Radar atualizou recentemente')
     if not demo:
-        st.info('Modo gratuito: sinais de atividade com avaliação parcial de risco. Não verifica concentração por carteira, insiders, bundles ou wash trading.')
+        st.info('Triagem parcial: LP e concentração reportada passam por filtros de risco. A venda não é simulada; insiders, bundles e wash trading não são auditados. Movimentos de grandes carteiras são variações de saldo de uma amostra.')
         for issue in run.get('source_errors', []):
             st.warning(str(issue))
     st.caption(f"Último ciclo: {stamp(latest)} · Tokens consultados no ciclo: {run.get('checked', 0)} · Falhas: {run.get('errors', 0)} · Horários de Brasília")
@@ -121,6 +121,7 @@ def _body(store, rules, demo, telegram_configured):
         st.write('Aderência aos critérios: cada um dos sete filtros de mercado vale 1/7 da nota. Dados essenciais ausentes, consultas antigas ou restrições deixam a pontuação pendente. A nota não estima lucro ou segurança e não altera o motor de alertas.')
         st.write('Duas consultas confirmam o sinal. A janela móvel de 5 minutos pode se sobrepor; isso não representa duas evidências independentes.')
         st.write('Fontes: DEX Screener, GeckoTerminal e RPC público da Solana. Ciclos de 5 minutos, até 30 moedas em acompanhamento. APIs gratuitas podem atrasar, limitar ou interromper respostas.')
-        st.write('Os filtros usam volume em USD, quantidade de compras/vendas, variação, liquidez, idade da pool e permissões básicas do token. A relação de contagem de compras/vendas não é uma relação de valores financeiros. Extensões não reconhecidas ficam pendentes. FDV é identificado e não tratado como market cap.')
+        st.write('Os sete critérios de mercado usam volume em USD, quantidade de compras/vendas, variação, liquidez, idade da pool e faixa de avaliação. Uma camada separada retém sinais por risco: LP, concentração fora das pools, alertas críticos externos e giro de volume atípico. Relatórios indisponíveis deixam a avaliação pendente. FDV é identificado e não tratado como market cap.')
+        st.write('Grandes carteiras: uma amostra de até cinco contas de grandes detentores é consultada na Solana. O indicador mostra variações de saldo, não ordens de compra/venda comprovadas, e não adiciona pontos nem bloqueia sinais por si só.')
         st.write('As variações após 15 minutos e 1 hora comparam preços observados na mesma pool. Não simulam execução, taxas, slippage ou lucro realizável. Não há promessa de retorno, análise de narrativas por IA ou execução de ordens.')
         st.caption('O feed compartilhado contém somente dados e sinais públicos de mercado. Carteiras pessoais, anotações, configurações e credenciais não fazem parte desse feed. Dados: DEX Screener e GeckoTerminal/CoinGecko.')

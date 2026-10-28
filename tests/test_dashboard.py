@@ -71,6 +71,11 @@ def test_live_cards_score_groups_search_and_table(monkeypatch):
         t['snapshot'].update(symbol='CARD-'+str(i),name='Card de teste',observed_at=now,pool_created_at=now-3600)
         if status=='watch':
             t['snapshot']['volume_5m']=1000
+        if status=='candidate':
+            t['snapshot']['whales']={'status':'changes','increases':1,'decreases':0,'items':[{
+                'wallet':'4'*32,'account_count':1,'pct_supply':2,'value_usd':15000,
+                'delta_tokens':100,'delta_usd':500,'direction':'increase'}]}
+        t['snapshot']['risk']['checked_at']=now
         tokens[t['address']]=t
     state = {'tokens':tokens,'alerts':[],'run':{'rules':RULES,'completed_at':now,'status':'ok'}}
     profile = {'id':'test-id','username':'teste','display_name':'Teste','role':'user','active':True}
@@ -82,6 +87,7 @@ def test_live_cards_score_groups_search_and_table(monkeypatch):
         assert not app.exception
         cards = '\n'.join(m.value for m in app.markdown)
         assert '6 de 7 critérios atendidos' in cards and '86<small>' in cards
+        assert '1 aumentando' in cards
         assert 'Bloqueada pelas verificações' in cards and 'Pontuação pendente' in cards
         assert any(h.value=='Em observação · 1' for h in app.subheader)
         app.selectbox(key='dex_group_filter').select('Em observação').run()
