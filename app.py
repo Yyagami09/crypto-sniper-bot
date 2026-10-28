@@ -353,7 +353,7 @@ with st.sidebar:
                 st.button(sub_label, key=sub_key, use_container_width=True, on_click=nav_sub, args=(sub_label,))
         
     with st.container(key="sniper_footer"):
-        st.markdown('''<div class="sniper-online" role="status"><span class="sniper-online-label"><span class="sniper-online-dot" aria-hidden="true"></span><span>Sistema online</span></span><span class="sniper-online-chevron" aria-hidden="true">›</span></div>''', unsafe_allow_html=True)
+        st.markdown('''<div class="sniper-online" role="status"><span class="sniper-online-label"><span class="sniper-online-dot" aria-hidden="true"></span><span>Crypto Sniper</span></span><span class="sniper-online-chevron" aria-hidden="true">›</span></div>''', unsafe_allow_html=True)
 
 modulo = st.session_state.modulo_ativo
 todos_jogos = []

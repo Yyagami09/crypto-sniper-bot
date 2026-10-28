@@ -56,8 +56,9 @@ def _body(store, rules, demo, telegram_configured):
     try:
         state = store.read()
     except StorageError as exc:
-        st.error(str(exc))
+        st.warning('O painel está publicado, mas ainda não conseguiu ler os dados privados do radar.')
         st.info('Se SUPABASE_KEY for uma chave pública, adicione PUMP_SUPABASE_KEY com a chave service_role nos Secrets do Streamlit. Essa chave fica somente no servidor.')
+        st.link_button('Ver instruções de ativação', 'https://github.com/Yyagami09/crypto-sniper-bot/blob/main/ATIVAR_RADAR.md')
         return
     now = time.time()
     run = state.get('run', {})
