@@ -1,20 +1,17 @@
 export function notificationText(a:any){
- const labels:any={candidate:'SINAL DE MERCADO — RISCO PARCIAL',conditions_lost:'CONDIÇÕES PERDIDAS',data_gap:'DADOS INDISPONÍVEIS'};
+ const labels:any={early_watch:'EXPERIMENTAL — TRIAGEM INICIAL ATENDIDA',early_changed:'EXPERIMENTAL — TRIAGEM ALTERADA',candidate:'SINAL DE MERCADO — RISCO PARCIAL',conditions_lost:'CONDIÇÕES PERDIDAS',data_gap:'DADOS INDISPONÍVEIS'};
  return `Crypto Sniper | ${labels[a.kind]||'AVISO'}\n${String(a.snapshot?.symbol||'?').slice(0,30)} | Solana\nCA: ${a.address}\n${(a.reasons||[]).join('\n').slice(0,1600)}\nConsulta: ${new Date(a.created_at*1000).toISOString()}\nTriagem parcial. Não é recomendação de compra nem previsão de lucro.\n${a.snapshot?.pair_url||''}`;
 }
 
 export async function deliverPersonal(state:any,db:any,started:number,send:any=fetch,clock=()=>Date.now()/1000){
  const connections=await db('rpc/sniper_telegram_credentials',{});
- const alerts=(state.alerts||[]).filter((a:any)=>a.snapshot?.profile==='free-market-v1'&&
-  ['candidate','conditions_lost','data_gap'].includes(a.kind)&&clock()-a.created_at<=1800&&
-  (a.kind!=='candidate'||a.snapshot.risk?.version==='risk-v1'&&a.snapshot.risk.status==='reviewed'&&
-   state.tokens?.[a.address]?.status==='candidate'&&state.tokens[a.address].snapshot?.risk?.status==='reviewed'&&
-   state.tokens[a.address].snapshot.pair_address===a.snapshot.pair_address)).sort((a:any,b:any)=>b.created_at-a.created_at);
+ const profiles=await db('sniper_profiles?active=eq.true&select=id,radar_mode,radar_mode_since');
  let attempted=0;
  for(const c of connections){
   if(!c.enabled||!c.connected_at||!c.chat_id)continue;
   const since=Date.parse(c.connected_at)/1000;
-  const eligible=alerts.filter((a:any)=>a.created_at>=since);
+  const profile=profiles.find((p:any)=>p.id===c.user_id);
+  const eligible=eligibleAlerts(state,profile?.radar_mode||'classic',clock()).filter((a:any)=>a.created_at>=Math.max(since,Date.parse(profile?.radar_mode_since||'1970-01-01')/1000));
   if(!eligible.length)continue;
   const prior=await db(`sniper_deliveries?user_id=eq.${c.user_id}&select=*&order=created_at.desc&limit=400`);
   for(const a of eligible){
@@ -43,4 +40,21 @@ export async function deliverPersonal(state:any,db:any,started:number,send:any=f
    await db(path,{status,...(status==='sent'?{sent_at:new Date(clock()*1000).toISOString()}:{next_attempt:new Date((clock()+retryAfter)*1000).toISOString()})},'PATCH');
   }
  }
+}
+
+export function eligibleAlerts(state:any,mode:string,now:number){
+ return (state.alerts||[]).filter((a:any)=>{
+  if(a.snapshot?.profile!=='free-market-v1'||now-a.created_at>1800||now<a.created_at)return false;
+  const t=state.tokens?.[a.address]||state.early_tokens?.[a.address];
+  if(mode==='early-v1'){
+   if(!['early_watch','early_changed'].includes(a.kind)||!t?.early||t.early.id!==a.snapshot.early?.id)return false;
+   if(a.kind==='early_changed')return t.early.status!=='reviewed';
+   return t.early.status==='reviewed'&&t.snapshot?.risk?.status==='reviewed'&&now-t.early.last_at<=120&&
+    t.snapshot.pair_address===a.snapshot.pair_address;
+  }
+  if(!['candidate','conditions_lost','data_gap'].includes(a.kind))return false;
+  return a.kind!=='candidate'||a.snapshot.risk?.version==='risk-v1'&&a.snapshot.risk.status==='reviewed'&&
+   state.tokens?.[a.address]?.status==='candidate'&&t.snapshot?.risk?.status==='reviewed'&&
+   t.snapshot.pair_address===a.snapshot.pair_address;
+ }).sort((a:any,b:any)=>b.created_at-a.created_at);
 }

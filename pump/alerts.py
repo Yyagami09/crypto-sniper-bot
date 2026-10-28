@@ -3,7 +3,7 @@ import time
 import urllib.error
 import urllib.request
 
-LABELS = {'candidate': 'CANDIDATA A ACOMPANHAMENTO', 'conditions_lost': 'CONDIÇÕES PERDIDAS',
+LABELS = {'early_watch':'EXPERIMENTAL — TRIAGEM INICIAL ATENDIDA','early_changed':'EXPERIMENTAL — TRIAGEM ALTERADA','candidate': 'CANDIDATA A ACOMPANHAMENTO', 'conditions_lost': 'CONDIÇÕES PERDIDAS',
           'data_gap': 'CONSULTA INDISPONÍVEL'}
 
 

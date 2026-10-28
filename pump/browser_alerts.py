@@ -9,10 +9,10 @@ _component = st.components.v2.component(
 )
 
 
-def render_browser_alerts(alerts, demo=False):
+def render_browser_alerts(alerts, demo=False, mode='classic'):
     uid = st.session_state.get('sniper_profile', {}).get('id', 'demo')
     _component(key='sniper_browser_notifications', data={
-        'scope': f'{uid}:{"demo" if demo else "live"}',
+        'scope': f'{uid}:{"demo" if demo else "live"}:{mode}',
         'alerts': [{'id': a['id'], 'kind': a['kind'], 'created_at': a['created_at'],
                     'symbol': str(a.get('snapshot', {}).get('symbol', '?'))[:30]} for a in alerts],
     })

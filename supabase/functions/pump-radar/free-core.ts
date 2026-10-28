@@ -1,6 +1,7 @@
 import {n,validAddress,event} from './core.ts';
 import {riskRules} from './risk.ts';
 import {publicNetworks} from './networks.ts';
+import {publicEarly} from './early.ts';
 export const freeRules={profile:'free-market-v1',interval_seconds:60,max_tracked:30,
  min_liquidity:25000,min_valuation:100000,max_valuation:10000000,min_pool_age_minutes:15,
  max_pool_age_minutes:10080,min_volume_5m:5000,min_transactions_5m:10,
@@ -98,15 +99,19 @@ export function publicFeed(state:any){
  const snapshot=(s:any)=>Object.fromEntries(['chain_id','address','symbol','name','profile','pair_address','pair_url',
   'observed_at','price','liquidity','market_cap','fdv','valuation','valuation_type','pool_created_at',
   'volume_5m','buy_count_5m','sell_count_5m','change_5m','mint_disabled','freeze_disabled',
-  'extensions_review','coverage','sources','risk','whales'].map(k=>[k,s[k]]));
+  'extensions_review','coverage','sources','risk','whales','early'].map(k=>[k,s[k]]));
  const tokens:any={};
  for(const [a,t] of Object.entries<any>(state.tokens||{})){
   if(t.snapshot?.profile!=='free-market-v1')continue;
   tokens[a]={address:a,first_seen:t.first_seen,last_checked:t.last_checked,status:t.status,
-   snapshot:snapshot(t.snapshot),reasons:t.reasons,missing:t.missing,
+   snapshot:snapshot(t.snapshot),early:publicEarly(t),reasons:t.reasons,missing:t.missing,
    history:(t.history||[]).map((h:any)=>({observed_at:h.observed_at,price:h.price,liquidity:h.liquidity,volume_5m:h.volume_5m}))};
  }
- return {version:3,profile:'free-market-v1',networks:publicNetworks(state,freeRules),tokens,alerts:(state.alerts||[])
+ const earlyTokens:any={};
+ for(const [a,t] of Object.entries<any>(state.early_tokens||{})){
+  if(t.snapshot?.profile==='free-market-v1')earlyTokens[a]={address:a,snapshot:snapshot(t.snapshot),early:publicEarly(t),first_seen:t.first_seen,last_checked:t.last_checked,status:t.status};
+ }
+ return {early_tokens:earlyTokens,early_enabled:!!state.early_enabled,version:4,profile:'free-market-v1',networks:publicNetworks(state,freeRules),tokens,alerts:(state.alerts||[])
   .filter((a:any)=>a.snapshot?.profile==='free-market-v1').slice(-100)
   .map((a:any)=>({id:a.id,address:a.address,kind:a.kind,created_at:a.created_at,reasons:a.reasons,
     snapshot:snapshot(a.snapshot),observations:a.observations||{},delivery:'panel'})),

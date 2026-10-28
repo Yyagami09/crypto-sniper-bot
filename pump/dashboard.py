@@ -25,6 +25,8 @@ def render():
     with options,st.popover('Opções',use_container_width=True):
         demo = st.toggle('Visualizar demonstração com dados simulados',key='pump_demo')
         st.caption('A demonstração usa exemplos fictícios. Não envia mensagens nem executa ordens.')
+        from pump.early import mode_options
+        mode_options()
     with network:
         chain = st.selectbox('Rede blockchain',list(NETWORKS),format_func=NETWORKS.get,key='dex_network',disabled=demo,label_visibility='collapsed')
     if demo:
@@ -71,6 +73,11 @@ def _body(store, rules, demo, telegram_configured, chain='solana'):
         st.link_button('Ver instruções de ativação', 'https://github.com/Yyagami09/crypto-sniper-bot/blob/main/RADAR_GRATUITO.md')
         return
     now = time.time()
+    if not demo and st.session_state.get('sniper_profile',{}).get('radar_mode','classic')=='early-v1':
+        from pump.early import render_experiment
+        render_experiment(store,state,now)
+        return
+    state['alerts']=[a for a in state.get('alerts',[]) if not a['kind'].startswith('early_')]
     run = state.get('run', {})
     from pump.dashboard_ui import status_line,operation_details
     status_line(run,now,stamp,demo)

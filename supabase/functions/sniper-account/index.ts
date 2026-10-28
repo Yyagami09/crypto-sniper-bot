@@ -45,6 +45,11 @@ Deno.serve(async req=>{
   if(!profile?.active)throw new ApiError('access_denied',403);
   const uid=u.id,action=body.action;
   if(action==='session')return reply({profile});
+  if(action==='radar_mode'){
+   if(!['classic','early-v1'].includes(body.mode))throw new ApiError('invalid_request');
+   const rows=await db('sniper_profiles?id=eq.'+uid,{radar_mode:body.mode,radar_mode_since:new Date().toISOString()},'PATCH');
+   return reply({profile:rows[0]});
+  }
   if(action==='change_password'){
    if(!validPassword(body.password))throw new ApiError('weak_password');
    await api('/auth/v1/user',{password:body.password},'PUT',bearer);return reply({ok:true});

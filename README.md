@@ -16,10 +16,12 @@ Use Python 3.12, instale `requirements-dev.txt` e execute:
 
 ```bash
 python -m pytest -q
-node --test tests/core.test.mjs tests/free-core.test.mjs tests/notifications.test.mjs tests/risk-whales.test.mjs tests/networks.test.mjs
+node --test tests/core.test.mjs tests/free-core.test.mjs tests/notifications.test.mjs tests/risk-whales.test.mjs tests/networks.test.mjs tests/early.test.mjs
 streamlit run app.py
 ```
 
 O teste TypeScript usa Node.js 24. A demonstração no Dex Sniper é identificada e usa dados fictícios isolados do banco real. Para executar localmente, configure Supabase e entre com uma conta criada pelo administrador.
 
 O seletor de redes do Dex Sniper inclui Robinhood Chain e outras sete redes além da Solana. Fora da Solana, o modo é de observação de mercado, sem confirmação ou alertas automáticos até adaptação dos verificadores de risco. Veja as diferenças em [RADAR_GRATUITO.md](RADAR_GRATUITO.md#redes-no-dex-sniper).
+
+Teste de descoberta antecipada: veja [EXPERIMENTO_ANTECIPADO.md](EXPERIMENTO_ANTECIPADO.md). A escolha de modo é por conta; Clássico mantém as regras anteriores.

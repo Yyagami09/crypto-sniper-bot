@@ -3,6 +3,7 @@ import {freeRules,fromDex,applyFree,updateOutcomes,publicFeed} from './free-core
 import {deliverPersonal} from './notifications.ts';
 import {enrichRisks} from './risk.ts';
 import {collectNetworks} from './networks.ts';
+import {observeEarly,finishEarly,publicEarly,earlyRules} from './early.ts';
 const now=()=>Date.now()/1000;
 const pause=(ms:number)=>new Promise(r=>setTimeout(r,ms));
 const respond=(data:any,status=200)=>Response.json(data,{status});
@@ -38,6 +39,8 @@ Deno.serve(async(req)=>{
    for(const t of Object.values<any>(state.tokens))t.qualified_at=0;
    state.risk_policy='risk-v1';
   }
+  const trialEnabled=(await db('sniper_profiles?active=eq.true&radar_mode=eq.early-v1&select=id&limit=1')).length>0;
+  state.early_enabled=trialEnabled;state.early_tokens||={};
   state.run={started_at:started,status:'running',demo:false,rules:freeRules,checked:0,errors:0,
    source_errors:[],engine:'supabase-free-market',telegram_configured:!!(cfg.telegram_token&&cfg.telegram_chat)};
   await commit();
@@ -76,10 +79,25 @@ Deno.serve(async(req)=>{
     }
     state.tokens[a]={address:a,first_seen:now(),last_checked:0,status:'queued',reasons:[],history:[],discovery_source:item.source};
    }
-   const addresses=Object.keys(state.tokens).filter(validAddress).slice(0,freeRules.max_tracked);
+   if(trialEnabled){
+    for(const a of Object.keys(state.early_tokens))if(state.tokens[a])delete state.early_tokens[a];
+    for(const item of discovered){
+     const a=item.address;if(!validAddress(a)||state.tokens[a]||state.early_tokens[a]||item.liquidity!==null&&item.liquidity<2000)continue;
+     if(Object.keys(state.early_tokens).length>=earlyRules.extra_tracked){
+      const old=Object.values<any>(state.early_tokens).filter(t=>now()-t.first_seen>600).sort((a,b)=>a.first_seen-b.first_seen)[0];
+      if(!old)continue;delete state.early_tokens[old.address];
+     }
+     state.early_tokens[a]={address:a,first_seen:now(),last_checked:0,status:'queued',reasons:[],history:[],discovery_source:item.source};
+    }
+   }
+   const allTokens={...state.tokens,...(trialEnabled?state.early_tokens:{})};
+   const addresses=Object.keys(allTokens).filter(validAddress).slice(0,freeRules.max_tracked+(trialEnabled?earlyRules.extra_tracked:0));
    if(!addresses.length&&state.run.source_errors.length)throw new Error('discovery_unavailable');
    if(addresses.length){
-    const pairs=await get('https://api.dexscreener.com/tokens/v1/solana/'+addresses.join(','));
+    const batches=[];for(let i=0;i<addresses.length;i+=30)batches.push(addresses.slice(i,i+30));
+    const pairResponses=await Promise.all(batches.map(batch=>get('https://api.dexscreener.com/tokens/v1/solana/'+batch.join(','))));
+    if(pairResponses.some(p=>!Array.isArray(p)))throw new Error('schema_changed');
+    const pairs=pairResponses.flat();
     if(!Array.isArray(pairs))throw new Error('schema_changed');
     const byToken:any={};
     for(const p of pairs){const a=p.baseToken?.address;if(addresses.includes(a)&&p.chainId==='solana'&&(!byToken[a]||(n(p.liquidity?.usd)||0)>(n(byToken[a].liquidity?.usd)||0)))byToken[a]=p;}
@@ -91,13 +109,13 @@ Deno.serve(async(req)=>{
     }catch{state.run.source_errors.push('Solana RPC: permissões não puderam ser verificadas');}
     const snapshots:any[]=[];
     for(let ix=0;ix<addresses.length;ix++){
-     const a=addresses[ix],t=state.tokens[a];
+     const a=addresses[ix],t=allTokens[a];
      try{
       const snap=fromDex(a,byToken[a],accounts[ix],now());snap.sources.discovery=t.discovery_source;
       snapshots.push(snap);
      }catch{
       if(t.status==='candidate')event(state,t,'data_gap',['Dados de mercado indisponíveis'],now());
-      t.status='incomplete';t.qualified_at=0;t.last_checked=now();t.reasons=['Pool não encontrada ou dados incompatíveis'];state.run.errors++;
+      t.status='incomplete';t.qualified_at=0;t.last_checked=now();t.reasons=['Pool não encontrada ou dados incompatíveis'];if(t.early)t.early.status='pending';state.run.errors++;
      }
      state.run.checked++;
     }
@@ -107,7 +125,19 @@ Deno.serve(async(req)=>{
      const j=await r.json();if(!r.ok||j.error||!Array.isArray(j.result?.value))throw new Error('risk_rpc_unavailable');return j.result.value;
     };
     await enrichRisks(snapshots,state,(url:string)=>get(url,4000),rpc,now,started);
-    for(const snap of snapshots)applyFree(state,state.tokens[snap.address],snap,now());
+    const trialRows:any[]=[],liveTrials=new Set<string>();
+    for(const snap of snapshots){
+     const t=allTokens[snap.address];
+     if(state.tokens[snap.address])applyFree(state,t,snap,now());
+     else{t.snapshot=snap;t.last_checked=now();t.status='watch';}
+     if(trialEnabled){const record=observeEarly(state,t,snap,now());if(record){liveTrials.add(snap.address+':'+snap.pair_address);trialRows.push(publicEarly(t));}}
+    }
+    if(trialEnabled){
+     trialRows.push(...finishEarly(state,liveTrials,now()).map(r=>publicEarly({early:r})));
+     await commit(); // Persist stable experiment IDs before the history upsert.
+     try{await db('rpc/dex_save_early_trials',{p_rows:trialRows});}
+     catch{state.run.source_errors.push('Registro do experimento indisponível neste ciclo; comparação pode ter lacunas');}
+    }
     const pendingRisk=snapshots.filter(s=>s.risk.status==='pending').length;
     if(pendingRisk)state.run.source_errors.push(`${pendingRisk} tokens aguardam relatório/consulta de risco. Até 4 relatórios por ciclo, com orçamento de 10 a cada 5 min; ausências não liberam sinais.`);
    }
@@ -119,7 +149,7 @@ Deno.serve(async(req)=>{
   state.run.completed_at=now();state.alerts=state.alerts.slice(-400);await commit();await publish();
   let attempts=0;
   for(const a of [...state.alerts].sort((a,b)=>b.created_at-a.created_at)){
-   if(a.delivery!=='pending')continue;
+   if(a.delivery!=='pending'||a.kind.startsWith('early_'))continue;
    if(a.kind==='candidate'&&(a.snapshot.risk?.status!=='reviewed'||state.tokens[a.address]?.status!=='candidate'||state.tokens[a.address]?.snapshot?.risk?.status!=='reviewed')){a.delivery='expired';continue;}
    if(now()-a.created_at>1800){a.delivery='expired';continue;}
    if(!cfg.telegram_token||!cfg.telegram_chat||a.next_attempt>now()||attempts>=3||now()-started>100)continue;

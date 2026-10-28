@@ -2,7 +2,7 @@ export function unseenAlerts(state, alerts, now) {
   const ids = alerts.map(a => a.id);
   if (!state.ready) { state.ready = true; state.seen = new Set(ids); return []; }
   const fresh = alerts.filter(a => !state.seen.has(a.id) && now-a.created_at <= 900 &&
-    now >= a.created_at && ['candidate','conditions_lost','data_gap'].includes(a.kind));
+    now >= a.created_at && ['candidate','conditions_lost','data_gap','early_watch','early_changed'].includes(a.kind));
   state.seen = new Set([...state.seen, ...ids].slice(-500));
   return fresh;
 }
@@ -58,7 +58,7 @@ export default function(component) {
   };
   const fresh = unseenAlerts(state,data.alerts||[],Date.now()/1000);
   if (fresh.length) {
-    const last=fresh.at(-1),label=last.kind==='candidate'?'Novo sinal de mercado':last.kind==='conditions_lost'?'Condições perdidas':'Dados indisponíveis';
+    const last=fresh.at(-1),label=last.kind==='early_watch'?'Experimental: triagem inicial atendida':last.kind==='early_changed'?'Experimental: triagem alterada':last.kind==='candidate'?'Novo sinal de mercado':last.kind==='conditions_lost'?'Condições perdidas':'Dados indisponíveis';
     const text = `${last.symbol||'?'} · ${label} · Risco parcial${fresh.length>1?` (+${fresh.length-1} avisos)`:''}`;
     if (state.sound) chime(last.kind).catch(()=>{state.sound=false;labels();message('Áudio suspenso pelo navegador. Ative o som novamente.');});
     if (state.desktop && 'Notification' in window && Notification.permission==='granted') {
