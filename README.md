@@ -1,8 +1,8 @@
 # Crypto Sniper
 
-Painel Streamlit com Game Sniper e radar GMGN no módulo Pump Trader.
+Painel Streamlit com Game Sniper e radar gratuito de mercado no módulo Pump Trader.
 
-O radar roda em uma função agendada no Supabase, independente da sessão do navegador. Para concluir a ativação com sua própria chave de consulta e notificações opcionais, siga [ATIVAR_RADAR.md](ATIVAR_RADAR.md).
+O radar usa DEX Screener, GeckoTerminal e RPC público da Solana. Roda a cada cinco minutos no Supabase, independente do navegador. Não requer depósito, carteira ou chave GMGN. Veja funcionamento e Telegram opcional em [RADAR_GRATUITO.md](RADAR_GRATUITO.md).
 
 Triagem por critérios experimentais, com registro de origem, horário e informações ausentes. Não executa negociações.
 
@@ -12,7 +12,7 @@ Use Python 3.12, instale `requirements-dev.txt` e execute:
 
 ```bash
 python -m pytest -q
-node --test tests/core.test.mjs
+node --test tests/core.test.mjs tests/free-core.test.mjs
 streamlit run app.py
 ```
 

@@ -61,10 +61,12 @@ class SupabaseStore:
         self.key = key
 
     def request(self, path, body=None):
+        headers = {'apikey': self.key, 'Content-Type': 'application/json'}
+        if self.key.startswith('eyJ') and self.key.count('.') == 2:
+            headers['Authorization'] = 'Bearer ' + self.key
         req = urllib.request.Request(self.url + path,
             data=json.dumps(body, allow_nan=False).encode() if body is not None else None,
-            headers={'apikey': self.key, 'Authorization': 'Bearer ' + self.key,
-                     'Content-Type': 'application/json'}, method='POST' if body is not None else 'GET')
+            headers=headers, method='POST' if body is not None else 'GET')
         try:
             with urllib.request.urlopen(req, timeout=20) as response:
                 return json.load(response)
@@ -86,6 +88,20 @@ class SupabaseStore:
 
     def release(self, owner):
         self.request('rpc/pump_release', {'p_owner': owner})
+
+
+class PublicMarketStore(SupabaseStore):
+    """Read-only shared market feed. Does not expose the private radar state."""
+    def __init__(self, url, key):
+        if not url or not key:
+            raise StorageError('Configure SUPABASE_URL e SUPABASE_KEY, já usados pelo Game Sniper')
+        super().__init__(url, key)
+
+    def read(self):
+        rows = self.request('pump_market_feed?id=eq.public&select=payload')
+        if not isinstance(rows, list) or len(rows) != 1:
+            raise StorageError('Feed de mercado aguardando publicação')
+        return rows[0]['payload']
 
 
 def make_store(config, demo=False):

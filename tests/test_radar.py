@@ -12,7 +12,7 @@ from pump.demo import ADDRESSES, DemoAPI, sample, seed_demo
 from pump.engine import apply_snapshot, scan
 from pump.gmgn import APIError, DataError, GMGN, boolean, normalize, number, enrich_discovery, discovery_risk
 from pump.rules import evaluate
-from pump.storage import LeaseLost, LocalStore, SupabaseStore, empty_state
+from pump.storage import LeaseLost, LocalStore, SupabaseStore, PublicMarketStore, empty_state
 
 
 @pytest.fixture
@@ -235,6 +235,19 @@ def test_supabase_adapter_rpc_semantics():
     with patch.object(store, 'request', return_value=False):
         with pytest.raises(LeaseLost):
             store.commit('owner', empty_state())
+
+
+def test_public_feed_uses_read_only_endpoint_and_modern_publishable_key():
+    import io
+    store = PublicMarketStore('https://example.supabase.co', 'sb_publishable_example')
+    with patch('pump.storage.urllib.request.urlopen', return_value=io.BytesIO(b'[{"payload":{"tokens":{},"alerts":[],"run":{}}}]')) as network:
+        result = store.read()
+    req = network.call_args.args[0]
+    assert req.get_method() == 'GET'
+    assert 'pump_market_feed' in req.full_url
+    assert req.get_header('Authorization') is None
+    assert req.get_header('Apikey') == 'sb_publishable_example'
+    assert result['tokens'] == {}
 
 
 @pytest.mark.parametrize('kwargs', [{'max_top10':30}, {'interval_seconds':0}, {'batch_size':2.5},

@@ -1,5 +1,7 @@
 # Ativar o radar GMGN
 
+> **LEGADO — desativado nesta instalação.** O radar agora funciona sem depósito ou chave GMGN. Siga [RADAR_GRATUITO.md](RADAR_GRATUITO.md). As instruções abaixo são apenas referência da versão anterior.
+
 O painel continua no Streamlit. A função `pump-radar` e o agendamento `pump-radar-every-minute` ficam no Supabase. Nenhuma VPS é necessária para esta versão.
 
 ## Configuração indispensável
