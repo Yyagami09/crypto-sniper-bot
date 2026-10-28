@@ -72,3 +72,22 @@ def test_lp_circulating_ownership_does_not_replace_reference_pool_claim_in_expla
     creator=next(r for r in rows if 'criador' in r[1])
     assert creator[2]=='1.0%' and creator[0]=='✓'
     assert 'referência' in creator[3]
+
+
+def test_pending_only_radar_shows_analysis_preview_and_can_clear_search(monkeypatch):
+    monkeypatch.setenv('SUPABASE_URL','https://example.supabase.co')
+    monkeypatch.setenv('SUPABASE_KEY','sb_publishable_example')
+    state=state_fixture();t=next(iter(state['tokens'].values()));t['early']['status']='pending'
+    profile={'id':'test-id','username':'teste','display_name':'Teste','role':'user','active':True,'radar_mode':'early-v1'}
+    with patch('supabase.create_client'),patch('pump.account.ensure_session',return_value=True),patch('pump.storage.PublicMarketStore.read',return_value=state),patch('pump.storage.PublicMarketStore.read_trials',return_value=[]):
+        app=AppTest.from_file(str(ROOT/'app.py'),default_timeout=20)
+        app.session_state['sniper_profile']=profile;app.session_state['sniper_session']={'access_token':'user-token'}
+        app.run();assert not app.exception
+        assert any(h.value=='Em análise · 1' for h in app.subheader)
+        assert any('EARLY' in m.value for m in app.markdown)
+        assert not any('POSSÍVEL OPORTUNIDADE · REVISAR GRÁFICO' in m.value for m in app.markdown)
+        app.text_input(key='early_search').set_value('NO_MATCH').run()
+        assert not app.exception
+        app.button(key='early_clear_filters').click().run()
+        assert not app.exception and app.text_input(key='early_search').value==''
+        assert any(h.value=='Em análise · 1' for h in app.subheader)

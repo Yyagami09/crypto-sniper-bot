@@ -75,6 +75,12 @@ def render_experiment(store,state,now):
         search=left.text_input('Buscar moeda ou contrato',key='early_search').strip().casefold()
         group=right.selectbox('Situação',['Todas',*STATUS.values()],key='early_filter')
         chosen=[e for e in entries if (group=='Todas' or STATUS.get(e[2])==group) and (not search or search in (str(e[0]['snapshot'].get('symbol',''))+' '+e[0]['address']).casefold())]
+        if search or group!='Todas':
+            st.caption(f'Filtro ativo · exibindo {len(chosen)} de {len(entries)} moedas em acompanhamento')
+            def clear_filters():
+                st.session_state.pop('early_search',None)
+                st.session_state.pop('early_filter',None)
+            st.button('Limpar filtros',key='early_clear_filters',on_click=clear_filters)
         def grid(items):
             for start in range(0,len(items),3):
                 for column,(token,r,status) in zip(st.columns(3),items[start:start+3]):
@@ -110,10 +116,17 @@ def render_experiment(store,state,now):
             st.caption('Possíveis oportunidades para análise manual, selecionadas pelas verificações disponíveis. Verde não significa moeda segura ou entrada confirmada.')
             if focus:grid(focus)
             else:st.info('Nenhuma moeda está pronta para destaque agora. Os próximos avisos aparecerão aqui automaticamente, sem promover moedas com dados pendentes.')
+        waiting=[e for e in chosen if e[2] in ('observing','pending')]
+        preview=waiting[:3] if group=='Todas' else []
+        if preview:
+            st.subheader(f'Em análise · {len(waiting)}')
+            st.caption('Prévia das moedas encontradas. Elas ainda não são destaques: veja em cada card o que falta verificar.')
+            grid(preview)
+        preview_ids={r['id'] for _,r,_ in preview}
         for status in ('observing','pending','extended','blocked'):
-            items=[e for e in chosen if e[2]==status]
+            items=[e for e in chosen if e[2]==status and e[1]['id'] not in preview_ids]
             if items:
-                with st.expander(STATUS[status]+f' · {len(items)}',expanded=group!='Todas'):
+                with st.expander(STATUS[status]+f' · {len(items)}'+(' restantes' if preview_ids and status in ('observing','pending') else ''),expanded=group!='Todas'):
                     grid(items)
     with comparison:
         st.caption('Últimos 100 registros de até 7 dias, incluindo pendentes, bloqueados e moedas que saíram do radar. Ausência de acompanhamento não é tratada como queda ou sucesso. Variações observadas não simulam execução ou lucro.')

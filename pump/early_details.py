@@ -51,7 +51,7 @@ def explanation(token,record,status,now):
     if s.get('mint_disabled') is None or s.get('freeze_disabled') is None:return 'Não foi possível verificar as permissões do contrato nesta leitura.'
     if s.get('extensions_review') is not False:return 'O programa ou as extensões do token ainda precisam de revisão.'
     if not rugcheck_summary(s,now)['available']:return 'O relatório de risco está indisponível ou aguardando atualização.'
-    if risk.get('lp_chain_checked') is not True:return 'A consulta atual da LP na Solana ainda não foi concluída.'
+    if risk.get('lp_chain_checked') is not True:return 'Não foi possível validar a LP desta pool com os dados disponíveis nesta consulta.'
     missing=[c for c in checks if c.get('state')=='unknown']
     if missing:return 'Falta verificar: '+', '.join(c['label'] for c in missing)+'.'
     sells=number(s.get('sell_count_5m'))

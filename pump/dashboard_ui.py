@@ -35,6 +35,8 @@ def status_line(run, now, stamp, demo=False, mode=None):
     interval=run.get('rules',{}).get('interval_seconds',60)
     meta='Dados simulados' if demo else 'Última coleta '+stamp(latest)+' · Brasília'
     detail=mode or f'Coleta a cada {interval}s · Triagem parcial'
+    if not demo and run.get('checked') is not None:
+        detail+=f" · {run['checked']} consultados no ciclo"
     st.markdown(f'<div class="dex-run-line"><span><b class="dex-health {tone}" title="Detalhes em Critérios e operação"><i></i>{html.escape(label)}</b><span>{html.escape(detail)}</span></span><span>{html.escape(meta)}</span></div>',unsafe_allow_html=True)
     if tone=='error':
         st.warning('A coleta falhou ou está sem atualização recente. Confira a operação antes de usar os dados.')
