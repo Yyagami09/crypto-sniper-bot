@@ -41,3 +41,11 @@ A gravação é feita somente pelo serviço de coleta. Usuários ativos podem le
 ## Cores e revisão do gráfico
 
 Verde, **Vale abrir o gráfico**, destaca apenas a triagem inicial atendida e recente (até dois minutos). São possíveis oportunidades para análise manual, sem sinal de compra. Azul indica observação, cinza falta de dados, amarelo movimento avançado na janela observada e vermelho restrição identificada. As demais cores ficam recolhidas para priorizar o que merece revisão. O Telegram e o navegador usam o mesmo aviso de revisão de gráfico. Os critérios do experimento não mudam por causa das cores; não há garantia de segurança ou de preço favorável.
+
+## Evidências didáticas nos cards
+
+O card exibe um motivo principal calculado a partir dos valores e das pendências da leitura, distinguindo liquidez insuficiente, restrições, dados ausentes, movimento avançado e espera por consultas válidas. O total histórico de observações não é usado como sinônimo de consultas seguidas aprovadas.
+
+LP protegida reportada, concentração Top 10 fora das pools e resumo de alertas do RugCheck ficam visíveis. Os detalhes mostram os valores de participação estimada do criador na oferta de referência da LP, permissões, variação de liquidez e vendas reportadas, com explicações de cobertura. Os critérios permanecem iguais.
+
+O resumo do RugCheck carrega separadamente os nomes de alertas críticos, avisos e outras ocorrências retornadas no relatório sanitizado. Heurísticas locais, como giro atípico de volume, não entram na contagem de alertas do RugCheck. Relatórios ausentes, vencidos ou anteriores à disponibilização desse resumo são mostrados como não verificados; nunca como zero alertas por omissão. O horário de consulta e o possível cache de origem ficam explícitos. O botão abre a página pública do token no RugCheck.

@@ -42,3 +42,33 @@ def test_experimental_ui_has_no_market_score_and_rollback_restores_classic(monke
         assert not app.exception and api.call_count==1
         assert app.session_state['sniper_profile']['radar_mode']=='classic'
         assert any(t.label=='⛏️ Achados · 24h' for t in app.tabs)
+
+
+def test_low_liquidity_with_twenty_observations_explains_the_actual_obstacle():
+    from pump.early_details import explanation
+    s=state_fixture();t=next(iter(s['tokens'].values()));r=t['early']
+    t['snapshot']['liquidity']=17616;r['observations']=20
+    text=explanation(t,r,'observing',time.time())
+    assert '17,616' in text and '25.000' in text
+    assert 'duas consultas' not in text
+
+
+def test_missing_or_stale_rugcheck_is_never_shown_as_no_alerts():
+    from pump.early_details import rugcheck_summary
+    now=time.time()
+    assert not rugcheck_summary({'risk':{}},now)['available']
+    risk={'report_fetched_at':now-1801,'rugcheck':{'status':'reported','critical':[],'warnings':[]}}
+    result=rugcheck_summary({'risk':risk},now)
+    assert result['icon']=='❔' and not result['available']
+    risk['report_fetched_at']=now
+    assert rugcheck_summary({'risk':risk},now)['available']
+    risk['rugcheck']['critical']=['LP unlocked']
+    assert rugcheck_summary({'risk':risk},now)['icon']=='⛔'
+
+
+def test_lp_circulating_ownership_does_not_replace_reference_pool_claim_in_explanation():
+    from pump.early_details import evidence_rows
+    rows=evidence_rows({'risk':{'creator_lp_pct':100,'creator_pool_claim_pct':1,'lp_locked_pct':99}}, {})
+    creator=next(r for r in rows if 'criador' in r[1])
+    assert creator[2]=='1.0%' and creator[0]=='✓'
+    assert 'referência' in creator[3]

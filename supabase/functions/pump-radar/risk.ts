@@ -32,7 +32,8 @@ export function assessRisk(s:any,cached:any,accounts:Map<string,any>,now:number)
  const out:any={version:riskRules.version,status:'pending',checked_at:now,
   report_fetched_at:cached?.fetched_at||null,report_source:'RugCheck — resposta pode estar em cache',
   lp_locked_pct:null,creator_lp_pct:null,creator_pool_claim_pct:null,top10_ex_pool_pct:null,volume_liquidity_5m:ratio,
-  lp_chain_checked:false,sell_check:'not_simulated',reasons,warnings};
+  lp_chain_checked:false,sell_check:'not_simulated',reasons,warnings,
+  rugcheck:{status:cached?'stale':'unavailable',critical:[],warnings:[],other:[]}};
  if(ratio!==null&&ratio>riskRules.max_volume_liquidity_5m)
   reasons.push(`Atividade atípica: volume de 5 min equivale a ${ratio.toFixed(1)}× a liquidez (limite experimental ${riskRules.max_volume_liquidity_5m}×; não comprova manipulação)`);
  else if(ratio!==null&&ratio>5)warnings.push('Giro de volume elevado em relação à liquidez; atividade automatizada não foi auditada');
@@ -40,6 +41,9 @@ export function assessRisk(s:any,cached:any,accounts:Map<string,any>,now:number)
   pending.push('Relatório de risco indisponível ou aguardando atualização');
  }else{
   const r=cached.report,market=r.markets.find((m:any)=>m.address===s.pair_address);
+  out.rugcheck={status:'reported',critical:r.risks.filter((f:any)=>f.level==='danger').map((f:any)=>f.name),
+   warnings:r.risks.filter((f:any)=>f.level==='warn').map((f:any)=>f.name),
+   other:r.risks.filter((f:any)=>!['danger','warn'].includes(f.level)).map((f:any)=>f.name)};
   for(const flag of r.risks){
    if(flag.level==='danger')reasons.push('Alerta crítico do RugCheck: '+flag.name);
    else if(flag.level==='warn')warnings.push('RugCheck: '+flag.name);

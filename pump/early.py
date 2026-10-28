@@ -78,28 +78,24 @@ def render_experiment(store,state,now):
         def grid(items):
             for start in range(0,len(items),3):
                 for column,(token,r,status) in zip(st.columns(3),items[start:start+3]):
+                    from pump.early_details import explanation,render_summary,render_verifications
                     s=token['snapshot'];assessment=r.get('assessment') or {}
                     with column,st.container(border=True,key='early_card_'+status+'_'+r['id']):
                         badge='POSSÍVEL OPORTUNIDADE · REVISAR GRÁFICO' if status=='reviewed' else STATUS.get(status,status).upper()
                         st.markdown(f'<div class="early-badge" style="color:{COLORS.get(status,"#94a3b4")}">{html.escape(badge)}</div>',unsafe_allow_html=True)
                         st.markdown('### '+html.escape(str(s.get('symbol','?'))))
-                        if status=='reviewed':
-                            st.markdown('<div class="early-why">Verificações disponíveis atendidas em duas consultas.<br>Liquidez presente e sem os alertas que retêm a seleção inicial.</div>',unsafe_allow_html=True)
+                        st.caption(explanation(token,r,status,now))
                         st.write('**Liquidez:** '+usd(s.get('liquidity')))
                         st.write('**'+str(s.get('valuation_type','Avaliação'))+':** '+usd(s.get('valuation')))
                         delta=number(assessment.get('price_since_first_pct'))
                         st.write('**Desde que apareceu no teste:** '+('—' if delta is None else f'{delta:+.1f}%'))
-                        if status=='extended':st.caption('Já avançou na janela observada. Aviso de oportunidade retido.')
-                        elif status=='blocked':st.caption('Fora dos destaques por uma restrição identificada. Confira os detalhes.')
-                        elif status=='pending':st.caption('Sem dados suficientes para destacar. Aguarde outra consulta.')
-                        elif status=='observing':st.caption('Ainda não passou pelas duas consultas necessárias para o destaque.')
+                        render_summary(s,now)
                         url=chart_url(token)
                         if url:st.link_button('👀 Analisar gráfico' if status=='reviewed' else 'Abrir gráfico',url,type='primary' if status=='reviewed' else 'secondary',use_container_width=True)
                         st.caption('Revisão manual · não é indicação de compra' if status=='reviewed' else 'Experimental · sem indicação de compra')
                         with st.expander('Por que recebeu esta cor?'):
                             st.caption('Primeira leitura: '+stamp(r.get('first_at'))+f" · {r.get('observations',0)} observações")
-                            for check in assessment.get('checks',[]):
-                                st.text({'met':'✓','unknown':'?','waiting':'○','blocked':'⛔'}.get(check['state'],'?')+' '+check['label'])
+                            render_verifications(token,r,now)
                             whales=s.get('whales') or {}
                             if whales.get('status')=='changes':
                                 st.caption(f"Amostra de carteiras: {whales.get('increases',0)} aumentando e {whales.get('decreases',0)} reduzindo saldo. Pode ser transferência.")

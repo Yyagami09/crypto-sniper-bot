@@ -136,3 +136,14 @@ test('warm report cache bypasses report HTTP but still verifies fresh LP account
  await enrichRisks([s],state,()=>{throw Error('must use cache');},async(batch)=>{rpcs++;return batch.map(a=>accounts().get(a)||null);},()=>now,now,async()=>{});
  assert.equal(s.risk.status,'reviewed');assert.equal(rpcs,1);
 });
+
+test('RugCheck summary separates provider flags from local heuristics and expired reports stay unknown',()=>{
+ const c=cached();c.report.risks=[{name:'Critical provider flag',level:'danger'},{name:'Provider warning',level:'warn'}];
+ const risk=assessRisk({...snapshot(),volume_5m:600000},c,accounts(),now);
+ assert.equal(risk.rugcheck.status,'reported');
+ assert.deepEqual(risk.rugcheck.critical,['Critical provider flag']);
+ assert.deepEqual(risk.rugcheck.warnings,['Provider warning']);
+ assert.ok(!JSON.stringify(risk.rugcheck).includes('Atividade atípica'));
+ const stale=assessRisk(snapshot(),{...c,fetched_at:now-1801},accounts(),now);
+ assert.equal(stale.rugcheck.status,'stale');assert.deepEqual(stale.rugcheck.critical,[]);
+});
