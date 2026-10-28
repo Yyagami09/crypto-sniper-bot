@@ -1,3 +1,7 @@
 [functions.pump-radar]
 # Custom machine-to-machine authentication, validated inside the function.
 verify_jwt = false
+
+[functions.sniper-account]
+# Validates the access token with Supabase Auth and checks a server-owned profile.
+verify_jwt = false

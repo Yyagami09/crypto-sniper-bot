@@ -1,14 +1,15 @@
 import {n,validAddress,event} from './core.ts';
 import {freeRules,fromDex,applyFree,updateOutcomes,publicFeed} from './free-core.ts';
+import {deliverPersonal} from './notifications.ts';
 const now=()=>Date.now()/1000;
 const pause=(ms:number)=>new Promise(r=>setTimeout(r,ms));
 const respond=(data:any,status=200)=>Response.json(data,{status});
 const base=Deno.env.get('SUPABASE_URL')!,service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-async function db(path:string,body?:any){
- const r=await fetch(`${base}/rest/v1/${path}`,{method:body===undefined?'GET':'POST',
- headers:{apikey:service,Authorization:`Bearer ${service}`,'Content-Type':'application/json'},
+async function db(path:string,body?:any,method?:string){
+ const r=await fetch(`${base}/rest/v1/${path}`,{method:method||(body===undefined?'GET':'POST'),
+ headers:{apikey:service,Authorization:`Bearer ${service}`,'Content-Type':'application/json',Prefer:'return=representation'},
  body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(8000)});
- if(!r.ok)throw new Error('database_error');return await r.json();
+ if(!r.ok)throw new Error('database_error');return r.status===204?null:await r.json();
 }
 async function sameSecret(a:string,b:string){
  const hash=async(s:string)=>new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s)));
@@ -109,6 +110,7 @@ Deno.serve(async(req)=>{
    }catch{a.next_attempt=now()+300;}
    await commit();await pause(1100);
   }
+  try{await deliverPersonal(state,db,started);}catch{/* Delivery retries next cycle; collection remains available. */}
   await commit();return respond({status:state.run.status,checked:state.run.checked,public_feed:true});
  }catch{return respond({error:'radar_unavailable'},503);}
  finally{if(acquired)try{await db('rpc/pump_release',{p_owner:owner});}catch{/* expires */}}

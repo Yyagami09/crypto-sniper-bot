@@ -54,15 +54,18 @@ class LocalStore:
 
 
 class SupabaseStore:
-    def __init__(self, url, key):
+    def __init__(self, url, key, access_token=None):
         if not url.startswith('https://') or not key:
             raise StorageError('Configure SUPABASE_URL e PUMP_SUPABASE_KEY')
         self.url = url.rstrip('/') + '/rest/v1/'
         self.key = key
+        self.access_token = access_token
 
     def request(self, path, body=None):
         headers = {'apikey': self.key, 'Content-Type': 'application/json'}
-        if self.key.startswith('eyJ') and self.key.count('.') == 2:
+        if self.access_token:
+            headers['Authorization'] = 'Bearer ' + self.access_token
+        elif self.key.startswith('eyJ') and self.key.count('.') == 2:
             headers['Authorization'] = 'Bearer ' + self.key
         req = urllib.request.Request(self.url + path,
             data=json.dumps(body, allow_nan=False).encode() if body is not None else None,
@@ -92,10 +95,10 @@ class SupabaseStore:
 
 class PublicMarketStore(SupabaseStore):
     """Read-only shared market feed. Does not expose the private radar state."""
-    def __init__(self, url, key):
+    def __init__(self, url, key, access_token=None):
         if not url or not key:
             raise StorageError('Configure SUPABASE_URL e SUPABASE_KEY, já usados pelo Game Sniper')
-        super().__init__(url, key)
+        super().__init__(url, key, access_token)
 
     def read(self):
         rows = self.request('pump_market_feed?id=eq.public&select=payload')

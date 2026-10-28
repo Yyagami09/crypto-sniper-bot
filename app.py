@@ -1,5 +1,5 @@
 import streamlit as st
-from supabase import create_client, Client
+from supabase import create_client, Client, ClientOptions
 import requests
 import re
 from datetime import datetime, timedelta, timezone
@@ -11,8 +11,7 @@ from urllib.parse import quote
 st.set_page_config(page_title="Crypto Sniper", layout="wide", initial_sidebar_state="expanded")
 
 # --- Conexão Segura com Supabase ---
-@st.cache_resource
-def init_connection():
+def init_connection(access_token):
     import os
     try:
         secrets = dict(st.secrets)
@@ -20,9 +19,7 @@ def init_connection():
         secrets = {}
     url = os.getenv("SUPABASE_URL") or secrets.get("SUPABASE_URL")
     key = os.getenv("SUPABASE_KEY") or secrets.get("SUPABASE_KEY")
-    return create_client(url, key) if url and key else None
-
-supabase: Client = init_connection()
+    return create_client(url, key, options=ClientOptions(headers={'Authorization': 'Bearer '+access_token}, persist_session=False, auto_refresh_token=False)) if url and key else None
 
 # --- Controle de Estado de Navegação e Automação ---
 if 'modulo_ativo' not in st.session_state:
@@ -105,6 +102,11 @@ div.stButton > button[kind="primary"]:hover { background-color: #00C892 !importa
 </style>
 """
 st.markdown(css, unsafe_allow_html=True)
+
+# Authentication precedes all navigation, data loading and user actions.
+from pump.account import require_login, logout, users_dashboard
+profile = require_login()
+supabase: Client = init_connection(st.session_state.sniper_session['access_token'])
 
 # --- Ícones Oficiais das Redes ---
 def obter_icone_rede(rede):
@@ -344,6 +346,8 @@ with st.sidebar:
     st.markdown('<div class="sidebar-section">MÓDULOS</div>', unsafe_allow_html=True)
     
     for key, label, icon, state_key in nav_items_main:
+        if label == 'Game Sniper' and profile['role'] != 'admin':
+            continue
         display_label = label
         if label == "Game Sniper":
             display_label = f"{label}  ▾" if not st.session_state.menu_expandido else f"{label}  ▴"
@@ -354,18 +358,37 @@ with st.sidebar:
             for sub_key, sub_label, sub_icon, sub_state_key in nav_items_sub:
                 st.button(sub_label, key=sub_key, use_container_width=True, on_click=nav_sub, args=(sub_label,))
         
+    st.divider()
+    st.caption(f"{profile['display_name']} · {'Administrador' if profile['role']=='admin' else 'Usuário'}")
+    st.button('🔔 Notificações', key='nav_notifications', use_container_width=True, on_click=nav_main, args=('Notificações',))
+    if profile['role'] == 'admin':
+        st.button('👥 Usuários', key='nav_users', use_container_width=True, on_click=nav_main, args=('Usuários',))
+    if st.button('Sair', key='sniper_logout', use_container_width=True):
+        logout()
     with st.container(key="sniper_footer"):
         st.markdown('''<div class="sniper-online" role="status"><span class="sniper-online-label"><span class="sniper-online-dot" aria-hidden="true"></span><span>Crypto Sniper</span></span><span class="sniper-online-chevron" aria-hidden="true">›</span></div>''', unsafe_allow_html=True)
 
 modulo = st.session_state.modulo_ativo
 todos_jogos = []
 if modulo == "Game Sniper":
+    if profile['role'] != 'admin':
+        st.error('O portfólio Game Sniper é exclusivo do administrador.')
+        st.stop()
     if supabase is None:
         st.info("Configure SUPABASE_URL e SUPABASE_KEY para abrir o Game Sniper.")
         st.stop()
     todos_jogos = buscar_todos_jogos()
 
-if modulo == "Pump Trader":
+if modulo == 'Usuários':
+    users_dashboard()
+
+elif modulo == 'Notificações':
+    st.title('Notificações')
+    st.caption('O som e os avisos do navegador são ativados no Dex Trade. O Telegram funciona com o painel fechado.')
+    from pump.telegram_ui import render_telegram_connection
+    render_telegram_connection()
+
+elif modulo == "Pump Trader":
     st.markdown("<div class='breadcrumb'>⚡ Pump Trader / <span>Em breve</span></div>", unsafe_allow_html=True)
     st.markdown("<h1 class='main-title'>Pump Trader</h1><p class='sub-title'>Módulo dedicado aos lançamentos na Pump.fun (Em construção).</p>", unsafe_allow_html=True)
 

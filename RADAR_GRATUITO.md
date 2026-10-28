@@ -27,20 +27,17 @@ Os critérios são experimentais. O sistema ainda não demonstrou rentabilidade 
 
 O painel reutiliza **SUPABASE_URL e SUPABASE_KEY** já existentes. Não precisa adicionar `PUMP_SUPABASE_KEY` nem chave administrativa.
 
-A tabela `pump_market_feed` contém somente o **feed compartilhado de dados e sinais públicos de mercado** e permite leitura pública. Carteiras pessoais, notas privadas, configurações, segredos e detalhes de entrega não fazem parte desse feed. Só o servidor escreve. `pump_radar_state` e Vault continuam protegidos. O código filtra explicitamente os campos publicados e não publica histórico privado antigo.
+A tabela `pump_market_feed` contém somente o **feed compartilhado de dados e sinais públicos de mercado** e exige uma conta ativa para leitura nesta instalação. Carteiras pessoais, notas privadas, configurações, segredos e detalhes de entrega não fazem parte desse feed. Só o servidor escreve. `pump_radar_state` e Vault continuam protegidos. O código filtra explicitamente os campos publicados e não publica histórico privado antigo.
 
 Painel: https://crypto-sniper-bot-usqhaaoh9qf5fseenn2dj6.streamlit.app/
 
 ## Telegram gratuito e opcional
 
-Os alertas já ficam no painel. Para recebê-los fora dele, crie seu bot pessoal, envie `/start` e configure no Vault:
+Entre no painel e abra **Notificações**. O assistente orienta a criar um bot gratuito no BotFather, colar a chave em um campo protegido, abrir o link e tocar em Iniciar. O ID da conversa é identificado automaticamente. A conexão fica vinculada ao usuário e a chave é criptografada no Vault. Não precisa informar telefone, senha do Telegram ou código de login. Há botões para teste e desconexão.
 
-| Nome | Valor |
-|---|---|
-| `pump_telegram_bot_token` | Token do seu bot |
-| `pump_telegram_chat_id` | ID da sua conversa privada com o bot |
+Não exige SOL. Sem configurar Telegram, os alertas continuam no painel. O envio automático só inclui eventos criados depois da conexão, expira após 30 minutos e faz até três tentativas. Uma falha entre envio e gravação pode duplicar uma mensagem. Não publique credenciais no GitHub ou no chat. A configuração global legada do Vault continua compatível, mas não é usada pelo assistente pessoal.
 
-Não exige SOL. Sem esses dois segredos, o painel continua funcionando. O envio tem limite de tentativas e expira alertas antigos; uma falha entre envio e gravação pode duplicar uma mensagem. Não publique credenciais no GitHub ou no chat.
+No **Dex Trade**, use **Ativar e testar som** e, se desejar, **Ativar notificações do navegador**. São opções desta página, dependem das permissões do navegador/Windows e podem parar se a aba for suspensa ou fechada. O primeiro carregamento não dispara alertas antigos. Para avisos com o painel fechado, use Telegram. Veja [ACESSO_E_ALERTAS.md](ACESSO_E_ALERTAS.md).
 
 ## Operação
 
@@ -48,17 +45,17 @@ O job conserva o nome legado `pump-radar-every-minute`, mas a expressão atual �
 
 Uma execução não se sobrepõe à outra. Mantém até 60 observações por token e até 400 alertas internos; o feed mostra os últimos 100. Mudança da pool principal reinicia a confirmação. Para pausar, desative o job na área Cron do Supabase. Não rode o worker Python legado simultaneamente.
 
-O Game Sniper e seus registros foram preservados. Autenticação e separação de contas de um SaaS completo são uma etapa adicional.
+O Game Sniper e seus registros foram preservados como espaço exclusivo do administrador. Contas comuns não têm acesso a esse portfólio. O radar é compartilhado e as conexões do Telegram são pessoais.
 
 ## Código e testes
 
 Perfil ativo: `supabase/functions/pump-radar/free-core.ts`; coletor: `index.ts`. `core.ts` mantém utilitários e perfil GMGN legado, que não coleta dados nesta instalação. O processo Python legado não está ativado.
 
-Infraestrutura versionada: `supabase_pump.sql`, `supabase_runtime.sql` e depois `free_market.sql`. Não reaplique sem conferir as migrações existentes. Limites ficam em `freeRules`, exigindo novo deploy quando alterados.
+Infraestrutura versionada: `supabase_pump.sql`, `supabase_runtime.sql`, `free_market.sql` e `users_notifications.sql`. Não reaplique sem conferir as migrações existentes. Limites ficam em `freeRules`, exigindo novo deploy quando alterados.
 
 ```bash
 python -m pytest -q
-node --test tests/core.test.mjs tests/free-core.test.mjs
+node --test tests/core.test.mjs tests/free-core.test.mjs tests/notifications.test.mjs
 ```
 
 Fontes oficiais:

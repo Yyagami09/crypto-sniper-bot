@@ -35,7 +35,7 @@ def render():
     config = settings(secrets)
     try:
         rules = load_rules()
-        store = make_store(config, True) if demo else PublicMarketStore(config.get('SUPABASE_URL', ''), config.get('SUPABASE_KEY') or config.get('PUMP_SUPABASE_KEY', ''))
+        store = make_store(config, True) if demo else PublicMarketStore(config.get('SUPABASE_URL', ''), config.get('SUPABASE_KEY') or config.get('PUMP_SUPABASE_KEY', ''), st.session_state.get('sniper_session', {}).get('access_token'))
     except (StorageError, ValueError) as exc:
         st.info(str(exc))
         st.write('O modo gratuito usa as configurações Supabase já existentes no painel. Não requer chave de dados, carteira ou depósito. Consulte RADAR_GRATUITO.md no repositório.')
@@ -53,6 +53,12 @@ def render():
 
 @st.fragment(run_every='15s')
 def _body(store, rules, demo, telegram_configured):
+    from pump.account import ensure_session
+    if not ensure_session():
+        st.warning('Entre novamente para continuar acompanhando o radar.')
+        return
+    if not demo:
+        store.access_token = st.session_state.sniper_session['access_token']
     try:
         state = store.read()
     except StorageError as exc:
@@ -86,10 +92,12 @@ def _body(store, rules, demo, telegram_configured):
     b.metric('Sinais de mercado recentes', sum(t.get('status') == 'candidate' and now-t.get('last_checked',0) <= run.get('rules', {}).get('confirmation_max_seconds', 1200) for t in tokens))
     c.metric('Rejeitadas pelos filtros', sum(t.get('status') == 'blocked' for t in tokens))
     d.metric('Alertas nas últimas 24h', sum(now-x['created_at'] <= 86400 for x in state['alerts']))
+    from pump.browser_alerts import render_browser_alerts
+    render_browser_alerts(state['alerts'], demo)
     radar_tab, alerts_tab, config_tab = st.tabs(['📡 Radar', '🔔 Alertas', '⚙️ Critérios e operação'])
     with alerts_tab:
         if not run.get('telegram_configured', telegram_configured) and not demo:
-            st.info('Alertas no painel. Para receber notificações com a aba fechada, configure seu bot pessoal do Telegram no Vault; ele é opcional e não exige depósito.')
+            st.info('Para receber avisos com o painel fechado, conecte seu bot pessoal no menu Notificações.')
         alerts = sorted(state['alerts'], key=lambda a:a['created_at'], reverse=True)[:50]
         if not alerts:
             st.info('Nenhum sinal confirmado ainda. O radar exige duas consultas, espaçadas por pelo menos 4 minutos, antes de registrar um sinal de mercado.')
