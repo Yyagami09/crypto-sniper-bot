@@ -27,3 +27,13 @@ A conclusão é baseada em regras transparentes. Não há interpretação livre 
 O endpoint reutiliza a autenticação de `sniper-account`, valida o JWT com Auth e exige conta ativa antes de qualquer consulta. Um RPC restrito ao serviço reserva atomicamente uma consulta por usuário a cada 30 segundos. Dados inválidos são rejeitados antes da reserva. O limite protege as fontes gratuitas e não garante disponibilidade ou cota. O banco guarda apenas o horário da tentativa no perfil; o relatório não é salvo no feed público ou no histórico compartilhado.
 
 A interface faz a consulta somente ao enviar o formulário. Alterar campos, navegar ou abrir o submenu não dispara chamadas de análise. Tokens de serviço, segredos de Telegram e relatórios brutos do cache não são devolvidos ao cliente.
+
+## Card de conclusão e pontuação
+
+A interface mostra uma conclusão separada da nota: Favorável para observar, Atenção, Desfavorável na triagem ou Dados insuficientes. No foco de riscos, o destaque favorável se limita à triagem de risco, sem avaliar momento de entrada. Uma restrição prevalece sobre qualquer nota; conclusão incompleta, rede sem cobertura e consulta antiga nunca recebem destaque favorável. Após três minutos, a pontuação da consulta deixa de valer e os itens ficam pendentes.
+
+A nota mede aderência, sem estimar lucro, segurança ou probabilidade de sucesso. Pesos: emissão 10, congelamento 10, programa/extensões 5, RugCheck 10, LP protegida 15, Top 10 fora das pools 10, participação do criador na LP de referência 10, liquidez 10, vendas registradas 5, giro volume/liquidez 5, três mínimas ascendentes 5 e volume dos candles recentes 5. No foco de risco, os dois itens de candles são excluídos e a soma de 90 pontos é normalizada para 100. Pendências e avisos recebem zero, sem redistribuir peso entre os demais itens. A composição aparece por item.
+
+Os limites de risco existentes são mantidos: LP reportada com proteção de pelo menos 90%, concentração externa Top 10 de até 50%, participação do criador na LP de referência de até 10%, liquidez mínima de US$ 25 mil. LP exige consulta em cadeia recente (até 120 segundos), além de relatório válido por até 30 minutos. O giro de volume de até 5 vezes a liquidez atende, entre 5 e 10 recebe atenção, acima de 10 é restrição experimental. Isso não comprova manipulação. Uma venda reportada não simula execução. Três mínimas ascendentes e volume de cinco candles igual ou superior aos cinco anteriores são hipóteses locais de observação, sem comprovar reversão. Os filtros não foram calibrados para rentabilidade.
+
+A mudança é de apresentação; não altera o radar, as chamadas às fontes, a autenticação, os alertas ou a execução de ordens.

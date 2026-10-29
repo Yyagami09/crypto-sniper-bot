@@ -35,7 +35,8 @@ def test_manual_submenu_only_queries_on_submit_and_clears_old_report_after_failu
         submit.click().run()
         assert not app.exception and api.call_count==1
         assert api.call_args.kwargs['objective']=='reentry'
-        assert any('Faltam dados para avaliar reentrada' in i.value for i in app.info)
+        assert any('Dados insuficientes para concluir' in m.value for m in app.markdown)
+        assert any('Pontuação parcial' in c.value for c in app.caption)
         api.side_effect=AccountError('Aguarde 30 segundos')
         next(b for b in app.button if b.label=='Analisar agora').click().run()
         assert not app.exception and 'manual_result' not in app.session_state

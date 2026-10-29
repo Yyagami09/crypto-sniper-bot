@@ -50,11 +50,8 @@ def render_report(report):
     st.subheader(str(s.get('symbol','?'))+' · '+NETWORKS.get(report['chain'],report['chain']))
     st.caption(OBJECTIVES.get(report['objective'],report['objective'])+' · Consulta: '+stamp(report['queried_at'])+' · Brasília')
     if now-report['queried_at']>180:st.warning('Este resultado tem mais de três minutos. Consulte novamente para atualizar os dados.')
-    {'red':st.error,'yellow':st.warning,'gray':st.info,'blue':st.info}.get(verdict['tone'],st.info)('**'+verdict['title']+'**\n\n'+verdict['text'])
-    for i,(column,(label,value)) in enumerate(zip(st.columns(4),[
-        ('Preço',price(s.get('price'))),('Liquidez',usd(s.get('liquidity'))),
-        (s.get('valuation_type','Avaliação'),usd(s.get('valuation'))),('Volume · 5 min',usd(s.get('volume_5m')))])):
-        with column,st.container(border=True,key='dex_summary_manual_'+str(i)):st.metric(label,value)
+    from pump.manual_score import render_card
+    render_card(report,now)
     st.caption('Contrato consultado: '+s['address'])
     st.link_button('Abrir gráfico no DEX Screener',s['pair_url'],type='primary',use_container_width=True)
     render_pump_link({'address':s['address'],'snapshot':{**s,'chain_id':report['chain']}},key='manual_pump')
@@ -98,6 +95,8 @@ def render_report(report):
                     st.dataframe([{'Carteira':w['wallet'],'% da oferta':w['pct_supply'],'Saldo estimado (USD)':w['value_usd']} for w in whales['items']],hide_index=True,use_container_width=True)
         else:st.info('Verificadores de risco ainda não adaptados a esta rede. Dados indisponíveis não recebem aprovação.')
     with sources:
+        st.write('**Detalhamento do verificador:** '+verdict['title'])
+        st.write(verdict['text'])
         for issue in report.get('source_errors',[]):st.write('• '+str(issue))
         st.caption('Mercado: DEX Screener · Candles: GeckoTerminal · Solana: RPC público e RugCheck, quando disponíveis.')
         for limitation in report.get('limitations',[]):st.write('• '+str(limitation))
